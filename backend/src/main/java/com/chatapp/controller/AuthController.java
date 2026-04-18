@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,8 +29,11 @@ public class AuthController {
             HttpSession session) {
         User user = userService.signIn(request);
         session.setAttribute(SESSION_USER_KEY, user.getId());
-        UserResponse response = UserResponse.fromEntity(user);
-        return ResponseEntity.ok(response);
+        session.setAttribute(
+                FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME,
+                user.getEmail()
+        );
+        return ResponseEntity.ok(UserResponse.fromEntity(user));
     }
 
     @PostMapping("/logout")
@@ -46,8 +50,11 @@ public class AuthController {
         }
         try {
             User user = userService.findById(userId);
-            UserResponse response = UserResponse.fromEntity(user);
-            return ResponseEntity.ok(response);
+            if (user.getDeletedAt() != null) {
+                session.invalidate();
+                return ResponseEntity.status(401).build();
+            }
+            return ResponseEntity.ok(UserResponse.fromEntity(user));
         } catch (Exception e) {
             session.invalidate();
             return ResponseEntity.status(401).build();
