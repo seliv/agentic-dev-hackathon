@@ -135,6 +135,20 @@ test.describe('Messaging', () => {
     await page2.close();
   });
 
+  test('user creates room, posts message, and sees it in chat', async ({ page }) => {
+    const id = unique();
+    await signUp(page, `uipost_${id}@test.com`, `uipost_${id}`);
+
+    const roomName = `uipost-${id}`;
+    await createRoom(page, roomName);
+    await selectRoom(page, roomName);
+
+    await page.getByPlaceholder('Type a message...').fill('This is my first message!');
+    await page.getByRole('button', { name: 'send' }).click();
+
+    await expect(page.getByText('This is my first message!')).toBeVisible({ timeout: 10_000 });
+  });
+
   test('empty state shows when no room selected', async ({ page }) => {
     const id = unique();
     await signUp(page, `empty_${id}@test.com`, `empty_${id}`);

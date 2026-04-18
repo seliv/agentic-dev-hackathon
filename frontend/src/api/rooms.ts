@@ -46,4 +46,9 @@ export const roomsApi = {
     const { data } = await client.get<ChatMessage[]>(`/rooms/${roomId}/messages?${params}`);
     return data;
   },
+
+  sendMessage: async (roomId: string, content: string): Promise<ChatMessage> => {
+    const { data } = await client.post<ChatMessage>(`/rooms/${roomId}/messages`, { content });
+    return data;
+  },
 };

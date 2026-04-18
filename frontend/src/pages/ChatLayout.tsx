@@ -24,6 +24,7 @@ export function ChatLayout() {
     setMessages(prev => {
       const next = new Map(prev);
       const existing = next.get(roomId) || [];
+      if (existing.some(m => m.id === msg.id)) return prev;
       next.set(roomId, [...existing, msg]);
       return next;
     });
@@ -79,10 +80,16 @@ export function ChatLayout() {
     return olderMessages.length >= 50;
   }, [selectedRoom, messages]);
 
-  const handleSendMessage = useCallback((content: string) => {
+  const handleSendMessage = useCallback(async (content: string) => {
     if (!selectedRoom) return;
-    sendMessage(selectedRoom.id, content);
-  }, [selectedRoom, sendMessage]);
+    try {
+      const msg = await roomsApi.sendMessage(selectedRoom.id, content);
+      handleNewMessage(selectedRoom.id, msg);
+    } catch {
+      // fallback: try WebSocket
+      sendMessage(selectedRoom.id, content);
+    }
+  }, [selectedRoom, sendMessage, handleNewMessage]);
 
   const handleLeaveRoom = useCallback(async () => {
     if (!selectedRoom) return;
