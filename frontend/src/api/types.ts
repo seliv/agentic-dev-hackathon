@@ -42,3 +42,46 @@ export interface ErrorResponse {
   message: string;
   path: string;
 }
+
+export interface ChatRoom {
+  id: string;
+  name: string;
+  description: string | null;
+  type: string;
+  ownerId: number;
+  ownerUsername: string;
+  memberCount: number;
+  createdAt: string;
+}
+
+export interface ChatRoomMember {
+  userId: number;
+  username: string;
+  displayName: string | null;
+  role: string;
+  joinedAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  roomId: string;
+  senderId: number;
+  senderUsername: string;
+  senderDisplayName: string | null;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateRoomRequest {
+  name: string;
+  description?: string;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
