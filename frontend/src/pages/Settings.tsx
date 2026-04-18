@@ -8,6 +8,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { usersApi } from '../api/users.ts';
+import { AppHeader } from '../components/AppHeader.tsx';
 import type { SessionInfo } from '../api/types.ts';
 
 const { Title, Text } = Typography;
@@ -36,8 +37,6 @@ const ProfileTab = () => {
 const SecurityTab = () => {
   const [passwordForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const handleChangePassword = async (values: { currentPassword: string; newPassword: string }) => {
@@ -75,18 +74,14 @@ const SecurityTab = () => {
           message.error('Password is required');
           throw new Error('Password required');
         }
-        setDeleteLoading(true);
         try {
           await usersApi.deleteAccount({ password });
           message.success('Account deleted');
-          await logout();
           navigate('/signin');
         } catch (error: unknown) {
           const err = error as { response?: { data?: { message?: string } } };
           message.error(err.response?.data?.message || 'Failed to delete account');
           throw error;
-        } finally {
-          setDeleteLoading(false);
         }
       },
     });
@@ -144,7 +139,6 @@ const SecurityTab = () => {
           danger
           icon={<DeleteOutlined />}
           onClick={handleDeleteAccount}
-          loading={deleteLoading}
         >
           Delete Account
         </Button>
@@ -243,11 +237,14 @@ export const Settings = () => {
   ];
 
   return (
-    <div style={{ padding: 24, maxWidth: 800, margin: '0 auto' }}>
-      <Title level={3}>Settings</Title>
-      <Card>
-        <Tabs items={items} />
-      </Card>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <AppHeader />
+      <div style={{ padding: 24, maxWidth: 800, margin: '0 auto', width: '100%' }}>
+        <Title level={3}>Settings</Title>
+        <Card>
+          <Tabs items={items} />
+        </Card>
+      </div>
     </div>
   );
 };
