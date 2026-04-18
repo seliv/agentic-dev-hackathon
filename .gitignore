@@ -22,3 +22,6 @@ Thumbs.db
 # Env
 .env
 .env.local
+
+# Claude Code (keep settings.json, ignore local overrides)
+.claude/settings.local.json
