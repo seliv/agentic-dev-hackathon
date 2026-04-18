@@ -9,6 +9,7 @@ public class UserResponse {
 
     private Long id;
     private String email;
+    private String username;
     private String displayName;
     private Instant createdAt;
     private Instant updatedAt;
@@ -17,6 +18,7 @@ public class UserResponse {
         UserResponse response = new UserResponse();
         response.setId(user.getId());
         response.setEmail(user.getEmail());
+        response.setUsername(user.getUsername());
         response.setDisplayName(user.getDisplayName());
         response.setCreatedAt(user.getCreatedAt());
         response.setUpdatedAt(user.getUpdatedAt());
