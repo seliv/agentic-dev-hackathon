@@ -40,8 +40,14 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
                 try {
                     User user = userService.findById(userId);
 
+                    if (user.getDeletedAt() != null) {
+                        session.invalidate();
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            user.getEmail(),
+                            user.getId(),
                             null,
                             Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
                     );
