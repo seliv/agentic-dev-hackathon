@@ -3,3 +3,7 @@ databaseChangeLog:
       file: db/changelog/changes/001-create-users-table.sql
   - include:
       file: db/changelog/changes/002-insert-demo-data.sql
+  - include:
+      file: db/changelog/changes/003-add-username-to-users.sql
+  - include:
+      file: db/changelog/changes/004-spring-session-tables.sql
