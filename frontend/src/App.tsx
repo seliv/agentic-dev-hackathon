@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute.tsx';
 import { SignUp } from './pages/SignUp.tsx';
 import { SignIn } from './pages/SignIn.tsx';
 import { Home } from './pages/Home.tsx';
+import { Settings } from './pages/Settings.tsx';
 
 function App() {
   return (
@@ -17,6 +18,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Home />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             }
           />

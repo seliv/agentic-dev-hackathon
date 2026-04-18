@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Form, Input, Button, Card, Typography, message } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, MailOutlined, IdcardOutlined } from '@ant-design/icons';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../api/auth.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
@@ -12,7 +12,7 @@ export const SignUp = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const onFinish = async (values: { email: string; password: string; displayName: string }) => {
+  const onFinish = async (values: { email: string; username: string; password: string; displayName: string }) => {
     setLoading(true);
     try {
       const user = await authApi.signUp(values);
@@ -46,6 +46,18 @@ export const SignUp = () => {
               ]}
             >
               <Input prefix={<MailOutlined />} placeholder="Email" />
+            </Form.Item>
+
+            <Form.Item
+              name="username"
+              rules={[
+                { required: true, message: 'Please input your username!' },
+                { min: 3, message: 'Username must be at least 3 characters!' },
+                { max: 32, message: 'Username must not exceed 32 characters!' },
+                { pattern: /^[a-zA-Z0-9_]+$/, message: 'Only letters, numbers, and underscores!' }
+              ]}
+            >
+              <Input prefix={<IdcardOutlined />} placeholder="Username" />
             </Form.Item>
 
             <Form.Item
