@@ -86,7 +86,7 @@ class PasswordChangeTest extends BaseIntegrationTest {
     }
 
     @Test
-    void changePassword_wrongCurrentPassword_returns401() throws Exception {
+    void changePassword_wrongCurrentPassword_returns400() throws Exception {
         Cookie cookie = signUpAndGetCookie("chpw3@test.com", "chpw3");
 
         String body = """
@@ -100,7 +100,7 @@ class PasswordChangeTest extends BaseIntegrationTest {
                         .cookie(cookie)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
-                .andExpect(status().isUnauthorized())
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Current password is incorrect"));
     }
 

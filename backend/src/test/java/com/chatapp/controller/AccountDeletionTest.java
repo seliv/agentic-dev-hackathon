@@ -107,7 +107,7 @@ class AccountDeletionTest extends BaseIntegrationTest {
     }
 
     @Test
-    void deleteAccount_wrongPassword_returns401() throws Exception {
+    void deleteAccount_wrongPassword_returns400() throws Exception {
         Cookie cookie = signUpAndGetCookie("del4@test.com", "del4");
 
         String body = """
@@ -118,7 +118,7 @@ class AccountDeletionTest extends BaseIntegrationTest {
                         .cookie(cookie)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
-                .andExpect(status().isUnauthorized())
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Password is incorrect"));
     }
 
