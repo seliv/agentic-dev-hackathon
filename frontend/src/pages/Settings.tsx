@@ -3,7 +3,7 @@ import {
   Tabs, Form, Input, Button, Card, Typography, message, Modal, Table, Tag,
 } from 'antd';
 import {
-  KeyOutlined, DeleteOutlined, ExclamationCircleOutlined,
+  KeyOutlined, DeleteOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.tsx';
@@ -37,6 +37,9 @@ const ProfileTab = () => {
 const SecurityTab = () => {
   const [passwordForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChangePassword = async (values: { currentPassword: string; newPassword: string }) => {
@@ -53,38 +56,23 @@ const SecurityTab = () => {
     }
   };
 
-  const handleDeleteAccount = () => {
-    let password = '';
-    Modal.confirm({
-      title: 'Delete Account',
-      icon: <ExclamationCircleOutlined />,
-      content: (
-        <div>
-          <p>This action cannot be undone. Enter your password to confirm:</p>
-          <Input.Password
-            onChange={(e) => { password = e.target.value; }}
-            placeholder="Enter your password"
-          />
-        </div>
-      ),
-      okText: 'Delete Account',
-      okType: 'danger',
-      onOk: async () => {
-        if (!password) {
-          message.error('Password is required');
-          throw new Error('Password required');
-        }
-        try {
-          await usersApi.deleteAccount({ password });
-          message.success('Account deleted');
-          navigate('/signin');
-        } catch (error: unknown) {
-          const err = error as { response?: { data?: { message?: string } } };
-          message.error(err.response?.data?.message || 'Failed to delete account');
-          throw error;
-        }
-      },
-    });
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      message.error('Password is required');
+      return;
+    }
+    setDeleteLoading(true);
+    try {
+      await usersApi.deleteAccount({ password: deletePassword });
+      message.success('Account deleted');
+      setDeleteModalOpen(false);
+      navigate('/signin');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      message.error(err.response?.data?.message || 'Failed to delete account');
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   return (
@@ -138,11 +126,28 @@ const SecurityTab = () => {
         <Button
           danger
           icon={<DeleteOutlined />}
-          onClick={handleDeleteAccount}
+          onClick={() => setDeleteModalOpen(true)}
         >
           Delete Account
         </Button>
       </div>
+
+      <Modal
+        title="Delete Account"
+        open={deleteModalOpen}
+        onOk={handleDeleteAccount}
+        onCancel={() => { setDeleteModalOpen(false); setDeletePassword(''); }}
+        okText="Delete Account"
+        okType="danger"
+        confirmLoading={deleteLoading}
+      >
+        <p>This action cannot be undone. Enter your password to confirm:</p>
+        <Input.Password
+          value={deletePassword}
+          onChange={(e) => setDeletePassword(e.target.value)}
+          placeholder="Enter your password"
+        />
+      </Modal>
     </div>
   );
 };
@@ -248,3 +253,4 @@ export const Settings = () => {
     </div>
   );
 };
+

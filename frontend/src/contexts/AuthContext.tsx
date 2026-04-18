@@ -28,7 +28,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   useEffect(() => {
-    refreshUser();
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const currentUser = await authApi.getCurrentUser();
+        if (!cancelled) setUser(currentUser);
+      } catch {
+        if (!cancelled) setUser(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    check();
+    return () => { cancelled = true; };
   }, []);
 
   const login = (user: User) => {

@@ -61,14 +61,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidCredentials(
             InvalidCredentialsException ex,
             HttpServletRequest request) {
+        boolean isAuthEndpoint = request.getRequestURI().startsWith("/api/auth/");
+        HttpStatus status = isAuthEndpoint ? HttpStatus.UNAUTHORIZED : HttpStatus.BAD_REQUEST;
         ErrorResponse error = new ErrorResponse(
                 Instant.now(),
-                HttpStatus.UNAUTHORIZED.value(),
-                "Unauthorized",
+                status.value(),
+                status.getReasonPhrase(),
                 ex.getMessage(),
                 request.getRequestURI()
         );
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        return ResponseEntity.status(status).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
