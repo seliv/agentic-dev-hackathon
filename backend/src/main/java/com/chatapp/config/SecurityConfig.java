@@ -34,7 +34,7 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .addFilterBefore(sessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/users/signup", "/api/auth/signin", "/api/auth/me").permitAll()
+                .requestMatchers("/api/users/signup", "/api/auth/signin", "/api/auth/me", "/ws/**").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
