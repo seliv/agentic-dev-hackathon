@@ -20,3 +20,7 @@ spring:
   liquibase:
     change-log: classpath:/db/changelog/db.changelog-master.yaml
     enabled: true
+  session:
+    store-type: jdbc
+    jdbc:
+      initialize-schema: never
