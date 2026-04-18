@@ -7,3 +7,9 @@ databaseChangeLog:
       file: db/changelog/changes/003-add-username-to-users.sql
   - include:
       file: db/changelog/changes/004-spring-session-tables.sql
+  - include:
+      file: db/changelog/changes/005-create-chat-rooms.sql
+  - include:
+      file: db/changelog/changes/006-create-chat-room-members.sql
+  - include:
+      file: db/changelog/changes/007-create-messages.sql
