@@ -23,3 +23,7 @@ Reviewed 2026-04-18. These items are deviations between `iterations.md` and `req
 - [ ] **Session browser/IP details missing** — Req 2.2.4: sessions should show browser/IP details. Iter 1 `SessionResponse` has no user-agent or IP fields.
 - [ ] **Unread indicators for DMs** — Iter 3 builds unread indicators before DMs exist in Iter 4. Will need extension.
 - [ ] **Top nav bar incomplete** — Wireframe shows full nav (Public Rooms, Private Rooms, Contacts, Sessions, Profile, Sign out). Not fully specified across iterations.
+- [ ] **DB query on every request** — `SessionAuthenticationFilter` calls `userService.findById()` on every authenticated request. Consider caching with short TTL.
+- [ ] **Soft-deleted users block username/email reuse** — `existsByEmail`/`existsByUsername` don't filter out soft-deleted users. Usernames/emails are permanently consumed after deletion.
+- [ ] **Gradle wrapper upgraded to 9.4.1** — Was 8.5 per CLAUDE.md. Needed for local Java 25 but Docker uses JDK 21. `backend/CLAUDE.md` still says "Gradle 8.5".
+- [ ] **AuthContext missing updateUser helper** — Plan called for it but not implemented. Not needed yet.
