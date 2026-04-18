@@ -5,6 +5,7 @@ import com.chatapp.dto.DeleteAccountRequest;
 import com.chatapp.dto.SignUpRequest;
 import com.chatapp.dto.UserResponse;
 import com.chatapp.entity.User;
+import com.chatapp.security.SessionConstants;
 import com.chatapp.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -26,14 +27,12 @@ public class UserController {
     private final UserService userService;
     private final FindByIndexNameSessionRepository<? extends Session> sessionRepository;
 
-    private static final String SESSION_USER_KEY = "user_id";
-
     @PostMapping("/signup")
     public ResponseEntity<UserResponse> signUp(
             @Valid @RequestBody SignUpRequest request,
             HttpSession session) {
         User user = userService.signUp(request);
-        session.setAttribute(SESSION_USER_KEY, user.getId());
+        session.setAttribute(SessionConstants.SESSION_USER_KEY, user.getId());
         session.setAttribute(
                 FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME,
                 user.getEmail()

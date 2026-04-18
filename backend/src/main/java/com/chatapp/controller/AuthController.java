@@ -3,6 +3,7 @@ package com.chatapp.controller;
 import com.chatapp.dto.SignInRequest;
 import com.chatapp.dto.UserResponse;
 import com.chatapp.entity.User;
+import com.chatapp.security.SessionConstants;
 import com.chatapp.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -21,14 +22,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final UserService userService;
-    private static final String SESSION_USER_KEY = "user_id";
 
     @PostMapping("/signin")
     public ResponseEntity<UserResponse> signIn(
             @Valid @RequestBody SignInRequest request,
             HttpSession session) {
         User user = userService.signIn(request);
-        session.setAttribute(SESSION_USER_KEY, user.getId());
+        session.setAttribute(SessionConstants.SESSION_USER_KEY, user.getId());
         session.setAttribute(
                 FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME,
                 user.getEmail()
@@ -44,7 +44,7 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(HttpSession session) {
-        Long userId = (Long) session.getAttribute(SESSION_USER_KEY);
+        Long userId = (Long) session.getAttribute(SessionConstants.SESSION_USER_KEY);
         if (userId == null) {
             return ResponseEntity.status(401).build();
         }

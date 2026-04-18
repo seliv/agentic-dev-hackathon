@@ -21,7 +21,6 @@ import java.util.Collections;
 public class SessionAuthenticationFilter extends OncePerRequestFilter {
 
     private final UserService userService;
-    private static final String SESSION_USER_KEY = "user_id";
 
     public SessionAuthenticationFilter(@Lazy UserService userService) {
         this.userService = userService;
@@ -34,7 +33,7 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
         HttpSession session = request.getSession(false);
 
         if (session != null) {
-            Long userId = (Long) session.getAttribute(SESSION_USER_KEY);
+            Long userId = (Long) session.getAttribute(SessionConstants.SESSION_USER_KEY);
 
             if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 try {

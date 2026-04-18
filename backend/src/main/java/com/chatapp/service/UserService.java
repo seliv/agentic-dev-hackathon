@@ -6,6 +6,7 @@ import com.chatapp.dto.SignUpRequest;
 import com.chatapp.entity.User;
 import com.chatapp.exception.InvalidCredentialsException;
 import com.chatapp.exception.UserAlreadyExistsException;
+import com.chatapp.exception.UserNotFoundException;
 import com.chatapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -56,7 +57,7 @@ public class UserService {
 
     public User findById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new InvalidCredentialsException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
     }
 
     @Transactional
