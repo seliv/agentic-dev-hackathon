@@ -3,7 +3,7 @@ import { AuthProvider } from './contexts/AuthContext.tsx';
 import { ProtectedRoute } from './components/ProtectedRoute.tsx';
 import { SignUp } from './pages/SignUp.tsx';
 import { SignIn } from './pages/SignIn.tsx';
-import { Home } from './pages/Home.tsx';
+import { ChatLayout } from './pages/ChatLayout.tsx';
 import { Settings } from './pages/Settings.tsx';
 
 function App() {
@@ -17,7 +17,7 @@ function App() {
             path="/"
             element={
               <ProtectedRoute>
-                <Home />
+                <ChatLayout />
               </ProtectedRoute>
             }
           />
