@@ -31,7 +31,7 @@ Three new entities (`RoomInvitation`, `Friendship`, `UserBlock`) plus extensions
 - `addressee_id` — BIGINT, FK to users.id, NOT NULL
 - `status` — VARCHAR (enum: PENDING, ACCEPTED, DECLINED), default PENDING
 - `created_at`, `updated_at` — TIMESTAMP
-- UNIQUE constraint on (requester_id, addressee_id)
+- UNIQUE constraint on (requester_id, addressee_id) — reverse-direction duplicates prevented at service layer (check both directions before insert)
 - Index on addressee_id for incoming request queries
 - Query friends: `WHERE (requester_id = ? OR addressee_id = ?) AND status = ACCEPTED`
 
