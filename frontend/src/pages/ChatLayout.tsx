@@ -42,24 +42,22 @@ export function ChatLayout() {
     }
     setSelectedRoom(room);
 
-    if (!messages.has(room.id)) {
-      setLoadingMessages(true);
-      try {
-        const msgs = await roomsApi.getMessages(room.id);
-        setMessages(prev => {
-          const next = new Map(prev);
-          next.set(room.id, msgs.reverse());
-          return next;
-        });
-      } catch (err) {
-        console.error('Failed to load messages', err);
-      } finally {
-        setLoadingMessages(false);
-      }
+    setLoadingMessages(true);
+    try {
+      const msgs = await roomsApi.getMessages(room.id);
+      setMessages(prev => {
+        const next = new Map(prev);
+        next.set(room.id, msgs.reverse());
+        return next;
+      });
+    } catch (err) {
+      console.error('Failed to load messages', err);
+    } finally {
+      setLoadingMessages(false);
     }
 
     subscribe(room.id);
-  }, [selectedRoom, messages, subscribe, unsubscribe]);
+  }, [selectedRoom, subscribe, unsubscribe]);
 
   const handleLoadMore = useCallback(async (): Promise<boolean> => {
     if (!selectedRoom) return false;
