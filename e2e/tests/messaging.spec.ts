@@ -149,6 +149,146 @@ test.describe('Messaging', () => {
     await expect(page.getByText('This is my first message!')).toBeVisible({ timeout: 10_000 });
   });
 
+  test('user B joins room created by user A, sends message, and sees it', async ({ page, browser }) => {
+    const id = unique();
+    const roomName = `cross-${id}`;
+
+    // User A creates the room
+    await signUp(page, `a_${id}@test.com`, `a_${id}`);
+    await createRoom(page, roomName);
+    await expect(page.getByText(`#${roomName}`).first()).toBeVisible();
+
+    // User B signs up, finds the room, joins, and sends a message
+    const pageB = await browser.newPage();
+    await signUp(pageB, `b_${id}@test.com`, `b_${id}`);
+    await browseAndJoin(pageB, roomName);
+    await selectRoom(pageB, roomName);
+
+    await pageB.getByPlaceholder('Type a message...').fill('Hello from user B!');
+    await pageB.getByRole('button', { name: 'send' }).click();
+
+    await expect(pageB.getByText('Hello from user B!')).toBeVisible({ timeout: 10_000 });
+
+    await pageB.close();
+  });
+
+  test('user B sees existing messages after joining a room', async ({ page, browser }) => {
+    const id = unique();
+    const roomName = `history-${id}`;
+
+    // User A creates a room and sends a message
+    await signUp(page, `hist_a_${id}@test.com`, `hist_a_${id}`);
+    await createRoom(page, roomName);
+    await selectRoom(page, roomName);
+
+    await page.getByPlaceholder('Type a message...').fill('Welcome to the room!');
+    await page.getByRole('button', { name: 'send' }).click();
+    await expect(page.getByText('Welcome to the room!')).toBeVisible({ timeout: 10_000 });
+
+    // User B signs up, finds the room, joins it
+    const pageB = await browser.newPage();
+    await signUp(pageB, `hist_b_${id}@test.com`, `hist_b_${id}`);
+    await browseAndJoin(pageB, roomName);
+    await selectRoom(pageB, roomName);
+
+    // User B should see the message that was sent before they joined
+    await expect(pageB.getByText('Welcome to the room!')).toBeVisible({ timeout: 10_000 });
+
+    await pageB.close();
+  });
+
+  test('user A sees message from user B after switching back to the room', async ({ page, browser }) => {
+    const id = unique();
+    const targetRoom = `target-${id}`;
+    const otherRoom = `other-${id}`;
+
+    // User A creates two rooms
+    await signUp(page, `a2_${id}@test.com`, `a2_${id}`);
+    await createRoom(page, otherRoom);
+    await createRoom(page, targetRoom);
+    await selectRoom(page, targetRoom);
+
+    // User A switches away to the other room
+    await selectRoom(page, otherRoom);
+
+    // User B signs up, finds the target room, joins, and posts a message
+    const pageB = await browser.newPage();
+    await signUp(pageB, `b2_${id}@test.com`, `b2_${id}`);
+    await browseAndJoin(pageB, targetRoom);
+    await selectRoom(pageB, targetRoom);
+
+    await pageB.getByPlaceholder('Type a message...').fill('Hey A, are you there?');
+    await pageB.getByRole('button', { name: 'send' }).click();
+    await expect(pageB.getByText('Hey A, are you there?')).toBeVisible({ timeout: 10_000 });
+
+    // User A switches back to the target room
+    await selectRoom(page, targetRoom);
+
+    // User A should see the message from User B
+    await expect(page.getByText('Hey A, are you there?')).toBeVisible({ timeout: 10_000 });
+
+    // User A switches away again
+    await selectRoom(page, otherRoom);
+
+    // User B sends two more messages
+    await pageB.getByPlaceholder('Type a message...').fill('Second message');
+    await pageB.getByRole('button', { name: 'send' }).click();
+    await expect(pageB.getByText('Second message')).toBeVisible({ timeout: 10_000 });
+
+    await pageB.getByPlaceholder('Type a message...').fill('Third message');
+    await pageB.getByRole('button', { name: 'send' }).click();
+    await expect(pageB.getByText('Third message')).toBeVisible({ timeout: 10_000 });
+
+    // User A switches back to the target room
+    await selectRoom(page, targetRoom);
+
+    // User A should see all three messages
+    await expect(page.getByText('Hey A, are you there?')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Second message')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Third message')).toBeVisible({ timeout: 10_000 });
+
+    await pageB.close();
+  });
+
+  test('30 messages display in order after scrolling up and down', async ({ page }) => {
+    const id = unique();
+    await signUp(page, `scroll_${id}@test.com`, `scroll_${id}`);
+
+    const roomName = `scroll-${id}`;
+    await createRoom(page, roomName);
+    await selectRoom(page, roomName);
+
+    const roomId = await getRoomId(page, roomName);
+
+    // Send 30 messages via UI
+    for (let i = 1; i <= 30; i++) {
+      await page.getByPlaceholder('Type a message...').fill(`Message ${i}`);
+      await page.getByRole('button', { name: 'send' }).click();
+      await expect(page.getByText(`Message ${i}`, { exact: true })).toBeVisible({ timeout: 5_000 });
+    }
+
+    // Scroll to top
+    const chatArea = page.locator('[style*="overflow-y: auto"]').first();
+    await chatArea.evaluate(el => el.scrollTop = 0);
+    await page.waitForTimeout(500);
+
+    // Scroll back to bottom
+    await chatArea.evaluate(el => el.scrollTop = el.scrollHeight);
+    await page.waitForTimeout(500);
+
+    // Collect all message content divs in DOM order
+    const allTexts = await chatArea.locator('div[style*="pre-wrap"]').allTextContents();
+    const numbers = allTexts
+      .map(t => t.trim())
+      .filter(t => /^Message \d+$/.test(t))
+      .map(t => parseInt(t.replace('Message ', '')));
+
+    expect(numbers).toHaveLength(30);
+    for (let i = 0; i < 30; i++) {
+      expect(numbers[i]).toBe(i + 1);
+    }
+  });
+
   test('empty state shows when no room selected', async ({ page }) => {
     const id = unique();
     await signUp(page, `empty_${id}@test.com`, `empty_${id}`);

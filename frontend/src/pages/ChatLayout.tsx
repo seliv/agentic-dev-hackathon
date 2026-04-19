@@ -40,26 +40,24 @@ export function ChatLayout() {
     if (selectedRoom) {
       unsubscribe(selectedRoom.id);
     }
+    setLoadingMessages(true);
     setSelectedRoom(room);
 
-    if (!messages.has(room.id)) {
-      setLoadingMessages(true);
-      try {
-        const msgs = await roomsApi.getMessages(room.id);
-        setMessages(prev => {
-          const next = new Map(prev);
-          next.set(room.id, msgs.reverse());
-          return next;
-        });
-      } catch (err) {
-        console.error('Failed to load messages', err);
-      } finally {
-        setLoadingMessages(false);
-      }
+    try {
+      const msgs = await roomsApi.getMessages(room.id);
+      setMessages(prev => {
+        const next = new Map(prev);
+        next.set(room.id, msgs.reverse());
+        return next;
+      });
+    } catch (err) {
+      console.error('Failed to load messages', err);
+    } finally {
+      setLoadingMessages(false);
     }
 
     subscribe(room.id);
-  }, [selectedRoom, messages, subscribe, unsubscribe]);
+  }, [selectedRoom, subscribe, unsubscribe]);
 
   const handleLoadMore = useCallback(async (): Promise<boolean> => {
     if (!selectedRoom) return false;
@@ -101,15 +99,15 @@ export function ChatLayout() {
 
   const handleRoomCreated = useCallback((room: ChatRoom) => {
     setRooms(prev => [...prev, room]);
-    setSelectedRoom(room);
     setCreateOpen(false);
-  }, []);
+    handleSelectRoom(room);
+  }, [handleSelectRoom]);
 
   const handleRoomJoined = useCallback((room: ChatRoom) => {
     setRooms(prev => prev.some(r => r.id === room.id) ? prev : [...prev, room]);
-    setSelectedRoom(room);
     setBrowserOpen(false);
-  }, []);
+    handleSelectRoom(room);
+  }, [handleSelectRoom]);
 
   const currentMessages = selectedRoom ? (messages.get(selectedRoom.id) || []) : [];
 
