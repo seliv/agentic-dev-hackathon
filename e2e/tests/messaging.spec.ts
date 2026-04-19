@@ -250,6 +250,45 @@ test.describe('Messaging', () => {
     await pageB.close();
   });
 
+  test('30 messages display in order after scrolling up and down', async ({ page }) => {
+    const id = unique();
+    await signUp(page, `scroll_${id}@test.com`, `scroll_${id}`);
+
+    const roomName = `scroll-${id}`;
+    await createRoom(page, roomName);
+    await selectRoom(page, roomName);
+
+    const roomId = await getRoomId(page, roomName);
+
+    // Send 30 messages via UI
+    for (let i = 1; i <= 30; i++) {
+      await page.getByPlaceholder('Type a message...').fill(`Message ${i}`);
+      await page.getByRole('button', { name: 'send' }).click();
+      await expect(page.getByText(`Message ${i}`, { exact: true })).toBeVisible({ timeout: 5_000 });
+    }
+
+    // Scroll to top
+    const chatArea = page.locator('[style*="overflow-y: auto"]').first();
+    await chatArea.evaluate(el => el.scrollTop = 0);
+    await page.waitForTimeout(500);
+
+    // Scroll back to bottom
+    await chatArea.evaluate(el => el.scrollTop = el.scrollHeight);
+    await page.waitForTimeout(500);
+
+    // Collect all message content divs in DOM order
+    const allTexts = await chatArea.locator('div[style*="pre-wrap"]').allTextContents();
+    const numbers = allTexts
+      .map(t => t.trim())
+      .filter(t => /^Message \d+$/.test(t))
+      .map(t => parseInt(t.replace('Message ', '')));
+
+    expect(numbers).toHaveLength(30);
+    for (let i = 0; i < 30; i++) {
+      expect(numbers[i]).toBe(i + 1);
+    }
+  });
+
   test('empty state shows when no room selected', async ({ page }) => {
     const id = unique();
     await signUp(page, `empty_${id}@test.com`, `empty_${id}`);
