@@ -1,5 +1,5 @@
 import client from './client.ts';
-import type { ChangePasswordRequest, DeleteAccountRequest, SessionInfo } from './types.ts';
+import type { ChangePasswordRequest, DeleteAccountRequest, SessionInfo, UserSearchResult } from './types.ts';
 
 export const usersApi = {
   changePassword: async (data: ChangePasswordRequest): Promise<void> => {
@@ -17,5 +17,10 @@ export const usersApi = {
 
   terminateSession: async (sessionId: string): Promise<void> => {
     await client.post(`/users/me/sessions/${sessionId}/invalidate`);
+  },
+
+  searchUsers: async (query: string): Promise<UserSearchResult[]> => {
+    const { data } = await client.get<UserSearchResult[]>(`/users/search?q=${encodeURIComponent(query)}`);
+    return data;
   },
 };
