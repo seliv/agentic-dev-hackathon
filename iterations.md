@@ -155,78 +155,7 @@
 
 ---
 
-## Iteration 3: Presence, Status & Notifications
-
-**Goal:** Users see online/AFK/offline status for other users, and unread message counts per room.
-
-### Scope
-
-- Online/AFK/offline presence tracking
-- Multi-tab support (online if any tab active, AFK if all idle >1 min, offline if no tabs)
-- Real-time presence broadcasts via WebSocket
-- Unread message indicators per room
-- Mark-as-read when opening a room
-
-### Backend
-
-**Entities/Storage:**
-- `UserPresence`: in-memory (`ConcurrentHashMap<Long, PresenceInfo>`) — not persisted to DB. `PresenceInfo` holds `status`, `activeConnections` count, `lastHeartbeatAt`
-- `ReadReceipt`: `user_id` (FK), `room_id` (FK), `last_read_message_id` (FK), `last_read_at`; unique on (user_id, room_id)
-
-**Endpoints:**
-- `GET /api/rooms/{roomId}/members/presence` — batch presence for room members
-- `POST /api/rooms/{roomId}/read` — mark room as read (body: `{lastReadMessageId}`)
-- `GET /api/rooms/unread` — unread counts for all user's rooms
-
-**WebSocket additions:**
-- Client sends → `/app/presence/heartbeat` — periodic heartbeat (every 15s)
-- Client sends → `/app/presence/status` — explicit AFK/active signal (on `visibilitychange`)
-- Server broadcasts → `/topic/presence` — presence changes
-
-**Services:**
-- `PresenceService`: track connections, heartbeats, compute status, broadcast changes
-- `UnreadService`: calculate unread counts via `ReadReceipt` vs message timestamps
-- Extend `WebSocketEventListener` (`SessionConnectEvent` / `SessionDisconnectEvent`): increment/decrement connection count, trigger presence updates
-
-**Presence logic:**
-- CONNECT: increment connections, set ONLINE, broadcast
-- DISCONNECT: decrement connections; if 0 → schedule OFFLINE after 30s timeout
-- Heartbeat received: update `lastHeartbeatAt`, set ONLINE if was AFK
-- No heartbeat for >60s on any connection: set AFK
-- Tab hidden (`visibilitychange`): client sends AFK signal; server sets AFK only if all connections report AFK
-
-### Frontend
-
-**Components:**
-- `PresenceIndicator.tsx`: green (online) / yellow (AFK) / gray (offline) dot
-- `UnreadBadge.tsx`: numeric badge on room list items
-- Extend `RoomList.tsx`: add unread badges, sort by recent activity
-- Extend member lists: add presence dots next to usernames
-
-**Hooks:**
-- `usePresence.ts`: subscribe to `/topic/presence`, maintain presence map
-- `useUnread.ts`: fetch unread counts on load, update on new messages and mark-as-read
-- Extend `useWebSocket.ts`: send heartbeats every 15s, listen to `visibilitychange` for AFK signals
-
-**Multi-tab handling:**
-- Each tab connects independently via WebSocket
-- Server counts connections per user (source of truth)
-- No `BroadcastChannel` coordination needed — server handles it
-
-### Database Migrations
-
-- `008-create-read-receipts.sql`: `read_receipts` table with unique (user_id, room_id)
-
-### Key Decisions
-
-- **In-memory presence** (not DB) — fast, acceptable for single-server; lost on restart is fine since presence is ephemeral
-- **Each tab = independent WebSocket** — server counts connections; simpler than client-side tab coordination
-- **Heartbeat interval: 15s**, AFK timeout: 60s no heartbeat, offline timeout: 30s after last disconnect
-- **Unread counts via direct query** — `COUNT(*) FROM messages WHERE room_id = ? AND created_at > last_read_at` — fine for moderate scale
-
----
-
-## Iteration 4: Private Rooms, Contacts & Personal Messaging
+## Iteration 3: Private Rooms, Contacts & Personal Messaging
 
 **Goal:** Users can create private (invite-only) rooms, manage a friends list, block users, and have direct message conversations.
 
@@ -289,9 +218,9 @@
 
 ### Database Migrations
 
-- `009-create-room-invitations.sql`
-- `010-create-friendships.sql`
-- `011-create-user-blocks.sql`
+- `008-create-room-invitations.sql`
+- `009-create-friendships.sql`
+- `010-create-user-blocks.sql`
 
 ### Key Decisions
 
@@ -299,6 +228,77 @@
 - **Single friendship row** (not symmetric pair) — query with `WHERE requester_id = ? OR addressee_id = ?`
 - **Block enforcement:** server-side in DMs (reject message send), client-side in group rooms (hide messages from blocked users)
 - **Personal messaging requires friendship** — enforced at service layer
+
+---
+
+## Iteration 4: Presence, Status & Notifications
+
+**Goal:** Users see online/AFK/offline status for other users, and unread message counts per room.
+
+### Scope
+
+- Online/AFK/offline presence tracking
+- Multi-tab support (online if any tab active, AFK if all idle >1 min, offline if no tabs)
+- Real-time presence broadcasts via WebSocket
+- Unread message indicators per room
+- Mark-as-read when opening a room
+
+### Backend
+
+**Entities/Storage:**
+- `UserPresence`: in-memory (`ConcurrentHashMap<Long, PresenceInfo>`) — not persisted to DB. `PresenceInfo` holds `status`, `activeConnections` count, `lastHeartbeatAt`
+- `ReadReceipt`: `user_id` (FK), `room_id` (FK), `last_read_message_id` (FK), `last_read_at`; unique on (user_id, room_id)
+
+**Endpoints:**
+- `GET /api/rooms/{roomId}/members/presence` — batch presence for room members
+- `POST /api/rooms/{roomId}/read` — mark room as read (body: `{lastReadMessageId}`)
+- `GET /api/rooms/unread` — unread counts for all user's rooms
+
+**WebSocket additions:**
+- Client sends → `/app/presence/heartbeat` — periodic heartbeat (every 15s)
+- Client sends → `/app/presence/status` — explicit AFK/active signal (on `visibilitychange`)
+- Server broadcasts → `/topic/presence` — presence changes
+
+**Services:**
+- `PresenceService`: track connections, heartbeats, compute status, broadcast changes
+- `UnreadService`: calculate unread counts via `ReadReceipt` vs message timestamps
+- Extend `WebSocketEventListener` (`SessionConnectEvent` / `SessionDisconnectEvent`): increment/decrement connection count, trigger presence updates
+
+**Presence logic:**
+- CONNECT: increment connections, set ONLINE, broadcast
+- DISCONNECT: decrement connections; if 0 → schedule OFFLINE after 30s timeout
+- Heartbeat received: update `lastHeartbeatAt`, set ONLINE if was AFK
+- No heartbeat for >60s on any connection: set AFK
+- Tab hidden (`visibilitychange`): client sends AFK signal; server sets AFK only if all connections report AFK
+
+### Frontend
+
+**Components:**
+- `PresenceIndicator.tsx`: green (online) / yellow (AFK) / gray (offline) dot
+- `UnreadBadge.tsx`: numeric badge on room list items
+- Extend `RoomList.tsx`: add unread badges, sort by recent activity
+- Extend member lists: add presence dots next to usernames
+
+**Hooks:**
+- `usePresence.ts`: subscribe to `/topic/presence`, maintain presence map
+- `useUnread.ts`: fetch unread counts on load, update on new messages and mark-as-read
+- Extend `useWebSocket.ts`: send heartbeats every 15s, listen to `visibilitychange` for AFK signals
+
+**Multi-tab handling:**
+- Each tab connects independently via WebSocket
+- Server counts connections per user (source of truth)
+- No `BroadcastChannel` coordination needed — server handles it
+
+### Database Migrations
+
+- `011-create-read-receipts.sql`: `read_receipts` table with unique (user_id, room_id)
+
+### Key Decisions
+
+- **In-memory presence** (not DB) — fast, acceptable for single-server; lost on restart is fine since presence is ephemeral
+- **Each tab = independent WebSocket** — server counts connections; simpler than client-side tab coordination
+- **Heartbeat interval: 15s**, AFK timeout: 60s no heartbeat, offline timeout: 30s after last disconnect
+- **Unread counts via direct query** — `COUNT(*) FROM messages WHERE room_id = ? AND created_at > last_read_at` — fine for moderate scale
 
 ---
 
