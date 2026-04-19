@@ -13,3 +13,11 @@ databaseChangeLog:
       file: db/changelog/changes/006-create-chat-room-members.sql
   - include:
       file: db/changelog/changes/007-create-messages.sql
+  - include:
+      file: db/changelog/changes/008-create-room-invitations.sql
+  - include:
+      file: db/changelog/changes/009-create-friendships.sql
+  - include:
+      file: db/changelog/changes/010-create-user-blocks.sql
+  - include:
+      file: db/changelog/changes/011-relax-room-name-unique.sql
