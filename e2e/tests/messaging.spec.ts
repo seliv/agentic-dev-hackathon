@@ -172,6 +172,31 @@ test.describe('Messaging', () => {
     await pageB.close();
   });
 
+  test('user B sees existing messages after joining a room', async ({ page, browser }) => {
+    const id = unique();
+    const roomName = `history-${id}`;
+
+    // User A creates a room and sends a message
+    await signUp(page, `hist_a_${id}@test.com`, `hist_a_${id}`);
+    await createRoom(page, roomName);
+    await selectRoom(page, roomName);
+
+    await page.getByPlaceholder('Type a message...').fill('Welcome to the room!');
+    await page.getByRole('button', { name: 'send' }).click();
+    await expect(page.getByText('Welcome to the room!')).toBeVisible({ timeout: 10_000 });
+
+    // User B signs up, finds the room, joins it
+    const pageB = await browser.newPage();
+    await signUp(pageB, `hist_b_${id}@test.com`, `hist_b_${id}`);
+    await browseAndJoin(pageB, roomName);
+    await selectRoom(pageB, roomName);
+
+    // User B should see the message that was sent before they joined
+    await expect(pageB.getByText('Welcome to the room!')).toBeVisible({ timeout: 10_000 });
+
+    await pageB.close();
+  });
+
   test('user A sees message from user B after switching back to the room', async ({ page, browser }) => {
     const id = unique();
     const targetRoom = `target-${id}`;

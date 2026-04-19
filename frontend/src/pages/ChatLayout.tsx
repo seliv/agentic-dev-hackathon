@@ -99,15 +99,15 @@ export function ChatLayout() {
 
   const handleRoomCreated = useCallback((room: ChatRoom) => {
     setRooms(prev => [...prev, room]);
-    setSelectedRoom(room);
     setCreateOpen(false);
-  }, []);
+    handleSelectRoom(room);
+  }, [handleSelectRoom]);
 
   const handleRoomJoined = useCallback((room: ChatRoom) => {
     setRooms(prev => prev.some(r => r.id === room.id) ? prev : [...prev, room]);
-    setSelectedRoom(room);
     setBrowserOpen(false);
-  }, []);
+    handleSelectRoom(room);
+  }, [handleSelectRoom]);
 
   const currentMessages = selectedRoom ? (messages.get(selectedRoom.id) || []) : [];
 
