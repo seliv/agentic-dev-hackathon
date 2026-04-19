@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Modal, List, Button, Typography, message } from 'antd';
+import { Modal, List, Button, message } from 'antd';
 import { friendsApi } from '../api/friends.ts';
 import { invitationsApi } from '../api/invitations.ts';
 import type { Friendship } from '../api/types.ts';
-
-const { Text } = Typography;
 
 interface Props {
   open: boolean;

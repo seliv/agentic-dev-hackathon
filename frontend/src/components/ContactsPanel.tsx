@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Drawer, Tabs, List, Button, Typography, message } from 'antd';
+import { Drawer, Tabs, List, Button, message } from 'antd';
 import { MessageOutlined, DeleteOutlined } from '@ant-design/icons';
 import { friendsApi } from '../api/friends.ts';
 import { blocksApi } from '../api/blocks.ts';
@@ -8,8 +8,6 @@ import { FriendRequestList } from './FriendRequestList.tsx';
 import { InvitationList } from './InvitationList.tsx';
 import type { Friendship, UserBlockInfo, RoomInvitation, ChatRoom } from '../api/types.ts';
 import { directMessagesApi } from '../api/directMessages.ts';
-
-const { Text } = Typography;
 
 interface Props {
   open: boolean;

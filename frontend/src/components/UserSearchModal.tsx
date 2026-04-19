@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Modal, Input, List, Button, Typography, message } from 'antd';
+import { Modal, Input, List, Button, message } from 'antd';
 import { UserAddOutlined, MessageOutlined } from '@ant-design/icons';
 import { usersApi } from '../api/users.ts';
 import { friendsApi } from '../api/friends.ts';
 import { directMessagesApi } from '../api/directMessages.ts';
 import type { UserSearchResult, ChatRoom } from '../api/types.ts';
-
-const { Text } = Typography;
 
 interface Props {
   open: boolean;

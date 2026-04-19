@@ -1,17 +1,24 @@
 import { Button, Typography } from 'antd';
-import { LogoutOutlined, TeamOutlined } from '@ant-design/icons';
+import { LogoutOutlined, UserAddOutlined } from '@ant-design/icons';
 import type { ChatRoom } from '../api/types.ts';
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 
-interface RoomHeaderProps {
+interface Props {
   room: ChatRoom;
   currentUserId: number;
   onLeave: () => void;
+  onInvite?: () => void;
 }
 
-export const RoomHeader = ({ room, currentUserId, onLeave }: RoomHeaderProps) => {
+export const RoomHeader = ({ room, currentUserId, onLeave, onInvite }: Props) => {
   const isOwner = room.ownerId === currentUserId;
+  const isDirect = room.type === 'DIRECT';
+  const isPrivate = room.type === 'PRIVATE';
+
+  const displayName = isDirect
+    ? 'Direct Message'
+    : `${isPrivate ? '🔒 ' : '#'}${room.name}`;
 
   return (
     <div style={{
@@ -22,17 +29,16 @@ export const RoomHeader = ({ room, currentUserId, onLeave }: RoomHeaderProps) =>
       borderBottom: '1px solid #f0f0f0',
     }}>
       <div>
-        <Text strong style={{ fontSize: 16 }}>#{room.name}</Text>
-        {room.description && (
-          <Text type="secondary" style={{ marginLeft: 12 }}>{room.description}</Text>
-        )}
+        <Title level={5} style={{ margin: 0 }}>{displayName}</Title>
+        {room.description && <Text type="secondary">{room.description}</Text>}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Text type="secondary"><TeamOutlined /> {room.memberCount}</Text>
-        {!isOwner && (
-          <Button size="small" danger icon={<LogoutOutlined />} onClick={onLeave}>
-            Leave
-          </Button>
+        <Text type="secondary">{room.memberCount} members</Text>
+        {isPrivate && onInvite && (
+          <Button size="small" icon={<UserAddOutlined />} onClick={onInvite}>Invite</Button>
+        )}
+        {!isOwner && !isDirect && (
+          <Button size="small" icon={<LogoutOutlined />} onClick={onLeave}>Leave</Button>
         )}
       </div>
     </div>
