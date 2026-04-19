@@ -16,30 +16,31 @@ import jakarta.persistence.Table;
 import lombok.Data;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "chat_rooms")
-public class ChatRoom {
+@Table(name = "room_invitations")
+public class RoomInvitation {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Column(nullable = false, length = 100)
-    private String name;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id", nullable = false)
+    private ChatRoom room;
 
-    @Column(columnDefinition = "TEXT")
-    private String description;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "inviter_id", nullable = false)
+    private User inviter;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "invitee_id", nullable = false)
+    private User invitee;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private RoomType type = RoomType.PUBLIC;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_id", nullable = false)
-    private User owner;
+    private InvitationStatus status = InvitationStatus.PENDING;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

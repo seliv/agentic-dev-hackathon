@@ -124,7 +124,7 @@ class RoomMembershipTest extends BaseIntegrationTest {
 
         mockMvc.perform(post("/api/rooms/{roomId}/leave", roomId)
                         .cookie(ownerCookie))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isConflict());
     }
 
     @Test

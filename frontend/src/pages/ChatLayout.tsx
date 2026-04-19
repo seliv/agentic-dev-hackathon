@@ -10,6 +10,9 @@ import { CreateRoomModal } from '../components/CreateRoomModal.tsx';
 import { ChatArea } from '../components/ChatArea.tsx';
 import { MessageInput } from '../components/MessageInput.tsx';
 import { RoomHeader } from '../components/RoomHeader.tsx';
+import { ContactsPanel } from '../components/ContactsPanel.tsx';
+import { UserSearchModal } from '../components/UserSearchModal.tsx';
+import { InviteToRoomModal } from '../components/InviteToRoomModal.tsx';
 
 export function ChatLayout() {
   const { user } = useAuth();
@@ -18,6 +21,9 @@ export function ChatLayout() {
   const [messages, setMessages] = useState<Map<string, ChatMessage[]>>(new Map());
   const [browserOpen, setBrowserOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [contactsOpen, setContactsOpen] = useState(false);
+  const [userSearchOpen, setUserSearchOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
 
   const handleNewMessage = useCallback((roomId: string, msg: ChatMessage) => {
@@ -84,7 +90,6 @@ export function ChatLayout() {
       const msg = await roomsApi.sendMessage(selectedRoom.id, content);
       handleNewMessage(selectedRoom.id, msg);
     } catch {
-      // fallback: try WebSocket
       sendMessage(selectedRoom.id, content);
     }
   }, [selectedRoom, sendMessage, handleNewMessage]);
@@ -109,6 +114,11 @@ export function ChatLayout() {
     handleSelectRoom(room);
   }, [handleSelectRoom]);
 
+  const handleDMCreated = useCallback((room: ChatRoom) => {
+    setRooms(prev => prev.some(r => r.id === room.id) ? prev : [...prev, room]);
+    handleSelectRoom(room);
+  }, [handleSelectRoom]);
+
   const currentMessages = selectedRoom ? (messages.get(selectedRoom.id) || []) : [];
 
   return (
@@ -119,7 +129,12 @@ export function ChatLayout() {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {selectedRoom ? (
             <>
-              <RoomHeader room={selectedRoom} currentUserId={user!.id} onLeave={handleLeaveRoom} />
+              <RoomHeader
+                room={selectedRoom}
+                currentUserId={user!.id}
+                onLeave={handleLeaveRoom}
+                onInvite={selectedRoom.type === 'PRIVATE' ? () => setInviteOpen(true) : undefined}
+              />
               <ChatArea messages={currentMessages} currentUserId={user!.id} onLoadMore={handleLoadMore} loading={loadingMessages} />
               <MessageInput onSend={handleSendMessage} />
             </>
@@ -131,11 +146,24 @@ export function ChatLayout() {
         </div>
         {/* Right Sidebar */}
         <div style={{ width: 280, borderLeft: '1px solid #f0f0f0', backgroundColor: '#fafafa' }}>
-          <RoomList rooms={rooms} selectedRoomId={selectedRoom?.id || null} onSelectRoom={handleSelectRoom} onBrowse={() => setBrowserOpen(true)} onCreate={() => setCreateOpen(true)} />
+          <RoomList
+            rooms={rooms}
+            selectedRoomId={selectedRoom?.id || null}
+            onSelectRoom={handleSelectRoom}
+            onBrowse={() => setBrowserOpen(true)}
+            onCreate={() => setCreateOpen(true)}
+            onContacts={() => setContactsOpen(true)}
+            onUserSearch={() => setUserSearchOpen(true)}
+          />
         </div>
       </div>
       <RoomBrowser open={browserOpen} onClose={() => setBrowserOpen(false)} onJoined={handleRoomJoined} joinedRoomIds={new Set(rooms.map(r => r.id))} />
       <CreateRoomModal open={createOpen} onClose={() => setCreateOpen(false)} onCreated={handleRoomCreated} />
+      <ContactsPanel open={contactsOpen} onClose={() => setContactsOpen(false)} onDMCreated={handleDMCreated} />
+      <UserSearchModal open={userSearchOpen} onClose={() => setUserSearchOpen(false)} onDMCreated={handleDMCreated} />
+      {selectedRoom && (
+        <InviteToRoomModal open={inviteOpen} roomId={selectedRoom.id} onClose={() => setInviteOpen(false)} />
+      )}
     </div>
   );
 }

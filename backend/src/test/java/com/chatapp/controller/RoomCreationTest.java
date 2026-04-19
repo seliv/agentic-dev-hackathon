@@ -163,7 +163,7 @@ class RoomCreationTest extends BaseIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("Room with this name already exists"));
+                .andExpect(jsonPath("$.message").value("A public room with this name already exists"));
     }
 
     @Test

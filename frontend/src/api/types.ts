@@ -76,6 +76,7 @@ export interface ChatMessage {
 export interface CreateRoomRequest {
   name: string;
   description?: string;
+  type?: string;
 }
 
 export interface PageResponse<T> {
@@ -84,4 +85,50 @@ export interface PageResponse<T> {
   totalPages: number;
   number: number;
   size: number;
+}
+
+export interface RoomInvitation {
+  id: number;
+  roomId: string;
+  roomName: string;
+  inviterId: number;
+  inviterUsername: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface Friendship {
+  id: number;
+  friendUserId: number;
+  friendUsername: string;
+  friendDisplayName: string | null;
+  status: string;
+  direction: 'INCOMING' | 'OUTGOING';
+  createdAt: string;
+}
+
+export interface UserBlockInfo {
+  id: number;
+  blockedUserId: number;
+  blockedUsername: string;
+  createdAt: string;
+}
+
+export interface UserSearchResult {
+  id: number;
+  username: string;
+  displayName: string | null;
+}
+
+export interface FriendRequestRequest {
+  userId: number;
+}
+
+export interface InviteUserRequest {
+  userId: number;
+}
+
+export interface NotificationPayload {
+  type: 'FRIEND_REQUEST' | 'ROOM_INVITATION';
+  data: Record<string, unknown>;
 }

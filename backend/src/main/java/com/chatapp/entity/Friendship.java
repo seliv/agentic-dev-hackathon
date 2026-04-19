@@ -13,33 +13,33 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Data;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "chat_rooms")
-public class ChatRoom {
+@Table(name = "friendships", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"requester_id", "addressee_id"})
+})
+public class Friendship {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Column(nullable = false, length = 100)
-    private String name;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "requester_id", nullable = false)
+    private User requester;
 
-    @Column(columnDefinition = "TEXT")
-    private String description;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "addressee_id", nullable = false)
+    private User addressee;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private RoomType type = RoomType.PUBLIC;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_id", nullable = false)
-    private User owner;
+    private FriendshipStatus status = FriendshipStatus.PENDING;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
