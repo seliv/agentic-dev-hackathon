@@ -40,9 +40,9 @@ export function ChatLayout() {
     if (selectedRoom) {
       unsubscribe(selectedRoom.id);
     }
+    setLoadingMessages(true);
     setSelectedRoom(room);
 
-    setLoadingMessages(true);
     try {
       const msgs = await roomsApi.getMessages(room.id);
       setMessages(prev => {
