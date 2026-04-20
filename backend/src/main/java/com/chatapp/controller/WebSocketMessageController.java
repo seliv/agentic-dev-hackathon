@@ -17,6 +17,7 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
+import java.util.List;
 import java.util.UUID;
 
 @Controller
@@ -43,9 +44,9 @@ public class WebSocketMessageController {
 
         User sender = userService.findById(userId);
         ChatRoom room = chatRoomService.findById(roomId);
-        Message message = messageService.sendMessage(room, sender, request.getContent());
+        Message message = messageService.sendMessage(room, sender, request.getContent(), request.getReplyToId());
 
-        MessageResponse response = MessageResponse.fromEntity(message);
+        MessageResponse response = MessageResponse.fromEntity(message, List.of());
         messagingTemplate.convertAndSend("/topic/rooms/" + roomId + "/messages", response);
     }
 

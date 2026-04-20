@@ -24,3 +24,10 @@ spring:
     store-type: jdbc
     jdbc:
       initialize-schema: never
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 25MB
+
+chatapp:
+  upload-dir: ./uploads

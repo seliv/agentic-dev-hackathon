@@ -27,6 +27,11 @@ public class MessageService {
 
     @Transactional
     public Message sendMessage(ChatRoom room, User sender, String content) {
+        return sendMessage(room, sender, content, null);
+    }
+
+    @Transactional
+    public Message sendMessage(ChatRoom room, User sender, String content, UUID replyToId) {
         if (room.getType() == RoomType.DIRECT) {
             List<ChatRoomMember> members = memberRepository.findByRoomId(room.getId());
             for (ChatRoomMember member : members) {
@@ -42,7 +47,60 @@ public class MessageService {
         message.setRoom(room);
         message.setSender(sender);
         message.setContent(content);
+
+        if (replyToId != null) {
+            Message replyTo = messageRepository.findById(replyToId)
+                    .orElseThrow(() -> new IllegalArgumentException("Reply-to message not found"));
+            if (!replyTo.getRoom().getId().equals(room.getId())) {
+                throw new IllegalArgumentException("Reply-to message must be in the same room");
+            }
+            message.setReplyTo(replyTo);
+        }
+
         return messageRepository.save(message);
+    }
+
+    @Transactional
+    public Message editMessage(UUID messageId, Long userId, String newContent) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("Message not found"));
+
+        if (!message.getSender().getId().equals(userId)) {
+            throw new IllegalStateException("Only the sender can edit a message");
+        }
+
+        if (message.getDeletedAt() != null) {
+            throw new IllegalStateException("Cannot edit a deleted message");
+        }
+
+        message.setContent(newContent);
+        message.setEditedAt(Instant.now());
+        return messageRepository.save(message);
+    }
+
+    @Transactional
+    public Message deleteMessage(UUID messageId, Long userId, UUID roomId) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("Message not found"));
+
+        if (!message.getRoom().getId().equals(roomId)) {
+            throw new IllegalArgumentException("Message does not belong to this room");
+        }
+
+        boolean isSender = message.getSender().getId().equals(userId);
+        boolean isOwner = message.getRoom().getOwner().getId().equals(userId);
+
+        if (!isSender && !isOwner) {
+            throw new IllegalStateException("Only the sender or room owner can delete a message");
+        }
+
+        message.setDeletedAt(Instant.now());
+        return messageRepository.save(message);
+    }
+
+    public Message findById(UUID messageId) {
+        return messageRepository.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("Message not found"));
     }
 
     public List<Message> getMessages(UUID roomId, Instant before, int limit) {

@@ -47,8 +47,33 @@ export const roomsApi = {
     return data;
   },
 
-  sendMessage: async (roomId: string, content: string): Promise<ChatMessage> => {
-    const { data } = await client.post<ChatMessage>(`/rooms/${roomId}/messages`, { content });
+  sendMessage: async (roomId: string, content: string, replyToId?: string): Promise<ChatMessage> => {
+    const { data } = await client.post<ChatMessage>(`/rooms/${roomId}/messages`, { content, replyToId });
     return data;
+  },
+
+  sendMessageWithAttachments: async (
+    roomId: string,
+    content: string | null,
+    files: File[],
+    replyToId?: string
+  ): Promise<ChatMessage> => {
+    const formData = new FormData();
+    if (content) formData.append('content', content);
+    if (replyToId) formData.append('replyToId', replyToId);
+    files.forEach(file => formData.append('files', file));
+    const { data } = await client.post<ChatMessage>(`/rooms/${roomId}/messages`, formData, {
+      headers: { 'Content-Type': undefined },
+    });
+    return data;
+  },
+
+  editMessage: async (roomId: string, messageId: string, content: string): Promise<ChatMessage> => {
+    const { data } = await client.put<ChatMessage>(`/rooms/${roomId}/messages/${messageId}`, { content });
+    return data;
+  },
+
+  deleteMessage: async (roomId: string, messageId: string): Promise<void> => {
+    await client.delete(`/rooms/${roomId}/messages/${messageId}`);
   },
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { ChatRoom, ChatMessage } from '../api/types.ts';
+import type { ChatRoom, ChatMessage, MessageEvent } from '../api/types.ts';
 import { roomsApi } from '../api/rooms.ts';
 import { presenceApi } from '../api/presence.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
@@ -28,6 +28,8 @@ export function ChatLayout() {
   const [userSearchOpen, setUserSearchOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
 
   const { getPresence, handlePresenceEvent } = usePresence();
   const { getUnreadCount, incrementUnread, markAsRead } = useUnread();
@@ -49,9 +51,32 @@ export function ChatLayout() {
     }
   }, [incrementUnread]);
 
+  const handleEvent = useCallback((roomId: string, event: MessageEvent) => {
+    if (event.type === 'MESSAGE_EDITED') {
+      const updated = event.data as ChatMessage;
+      setMessages(prev => {
+        const next = new Map(prev);
+        const existing = next.get(roomId) || [];
+        next.set(roomId, existing.map(m => m.id === updated.id ? updated : m));
+        return next;
+      });
+    } else if (event.type === 'MESSAGE_DELETED') {
+      const { messageId } = event.data as { messageId: string };
+      setMessages(prev => {
+        const next = new Map(prev);
+        const existing = next.get(roomId) || [];
+        next.set(roomId, existing.map(m =>
+          m.id === messageId ? { ...m, deleted: true, content: null, attachments: [] } : m
+        ));
+        return next;
+      });
+    }
+  }, []);
+
   const { subscribe, unsubscribe, sendMessage } = useWebSocket({
     onMessage: handleNewMessage,
     onPresence: handlePresenceEvent,
+    onEvent: handleEvent,
   });
 
   useEffect(() => {
@@ -64,6 +89,8 @@ export function ChatLayout() {
     }
     setLoadingMessages(true);
     setSelectedRoom(room);
+    setReplyTo(null);
+    setEditingMessage(null);
 
     try {
       const msgs = await roomsApi.getMessages(room.id);
@@ -83,7 +110,6 @@ export function ChatLayout() {
 
     subscribe(room.id);
 
-    // Fetch initial presence for room members
     presenceApi.getRoomMemberPresence(room.id)
       .then(presences => presences.forEach(handlePresenceEvent))
       .catch(console.error);
@@ -108,15 +134,44 @@ export function ChatLayout() {
     return olderMessages.length >= 50;
   }, [selectedRoom, messages]);
 
-  const handleSendMessage = useCallback(async (content: string) => {
+  const handleSendMessage = useCallback(async (content: string, files: File[], replyToId?: string) => {
+    if (!selectedRoom) return;
+
+    if (editingMessage) {
+      try {
+        await roomsApi.editMessage(selectedRoom.id, editingMessage.id, content);
+      } catch (err) {
+        console.error('Failed to edit message', err);
+      }
+      setEditingMessage(null);
+      return;
+    }
+
+    try {
+      if (files.length > 0) {
+        const msg = await roomsApi.sendMessageWithAttachments(selectedRoom.id, content || null, files, replyToId);
+        handleNewMessage(selectedRoom.id, msg);
+      } else if (replyToId) {
+        const msg = await roomsApi.sendMessage(selectedRoom.id, content, replyToId);
+        handleNewMessage(selectedRoom.id, msg);
+      } else {
+        sendMessage(selectedRoom.id, content);
+      }
+    } catch (err) {
+      console.error('Failed to send message', err);
+    }
+
+    setReplyTo(null);
+  }, [selectedRoom, editingMessage, sendMessage, handleNewMessage]);
+
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
     if (!selectedRoom) return;
     try {
-      const msg = await roomsApi.sendMessage(selectedRoom.id, content);
-      handleNewMessage(selectedRoom.id, msg);
-    } catch {
-      sendMessage(selectedRoom.id, content);
+      await roomsApi.deleteMessage(selectedRoom.id, messageId);
+    } catch (err) {
+      console.error('Failed to delete message', err);
     }
-  }, [selectedRoom, sendMessage, handleNewMessage]);
+  }, [selectedRoom]);
 
   const handleLeaveRoom = useCallback(async () => {
     if (!selectedRoom) return;
@@ -143,6 +198,12 @@ export function ChatLayout() {
     handleSelectRoom(room);
   }, [handleSelectRoom]);
 
+  const handleFileDrop = useCallback((_files: File[]) => {
+    // Files from drag-drop are handled by MessageInput's addFiles
+    // For now, this is a placeholder — the drag-drop UI is in ChatArea
+    // but the actual file state lives in MessageInput
+  }, []);
+
   const getDmPresence = () => {
     if (!selectedRoom || selectedRoom.type !== 'DIRECT') return undefined;
     const dmMatch = selectedRoom.name.match(/^dm-(\d+)-(\d+)$/);
@@ -159,7 +220,6 @@ export function ChatLayout() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <AppHeader />
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {/* Chat Area - center */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {selectedRoom ? (
             <>
@@ -170,8 +230,24 @@ export function ChatLayout() {
                 onInvite={selectedRoom.type === 'PRIVATE' ? () => setInviteOpen(true) : undefined}
                 dmPresence={getDmPresence()}
               />
-              <ChatArea messages={currentMessages} currentUserId={user!.id} onLoadMore={handleLoadMore} loading={loadingMessages} />
-              <MessageInput onSend={handleSendMessage} />
+              <ChatArea
+                messages={currentMessages}
+                currentUserId={user!.id}
+                roomOwnerId={selectedRoom.ownerId}
+                onLoadMore={handleLoadMore}
+                loading={loadingMessages}
+                onReply={setReplyTo}
+                onEdit={setEditingMessage}
+                onDelete={handleDeleteMessage}
+                onFileDrop={handleFileDrop}
+              />
+              <MessageInput
+                onSend={handleSendMessage}
+                replyTo={replyTo}
+                onCancelReply={() => setReplyTo(null)}
+                editingMessage={editingMessage}
+                onCancelEdit={() => setEditingMessage(null)}
+              />
             </>
           ) : (
             <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#999' }}>
@@ -179,7 +255,6 @@ export function ChatLayout() {
             </div>
           )}
         </div>
-        {/* Right Sidebar */}
         <div style={{ width: 280, borderLeft: '1px solid #f0f0f0', backgroundColor: '#fafafa' }}>
           <RoomList
             rooms={rooms}

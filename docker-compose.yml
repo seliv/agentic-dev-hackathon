@@ -27,6 +27,9 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/chatapp
       - SPRING_DATASOURCE_USERNAME=chatapp
       - SPRING_DATASOURCE_PASSWORD=chatapp
+      - CHATAPP_UPLOAD_DIR=/app/uploads
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,3 +52,4 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:

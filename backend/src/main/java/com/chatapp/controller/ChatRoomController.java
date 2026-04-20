@@ -3,15 +3,10 @@ package com.chatapp.controller;
 import com.chatapp.dto.ChatRoomMemberResponse;
 import com.chatapp.dto.ChatRoomResponse;
 import com.chatapp.dto.CreateRoomRequest;
-import com.chatapp.dto.MessageResponse;
-import com.chatapp.dto.SendMessageRequest;
 import com.chatapp.entity.ChatRoom;
-import com.chatapp.entity.Message;
 import com.chatapp.entity.User;
 import com.chatapp.service.ChatRoomService;
-import com.chatapp.service.MessageService;
 import com.chatapp.service.UserService;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,9 +24,7 @@ import java.util.UUID;
 public class ChatRoomController {
 
     private final ChatRoomService chatRoomService;
-    private final MessageService messageService;
     private final UserService userService;
-    private final SimpMessagingTemplate messagingTemplate;
 
     @PostMapping
     public ResponseEntity<ChatRoomResponse> createRoom(
@@ -105,36 +97,6 @@ public class ChatRoomController {
                 .map(ChatRoomMemberResponse::fromEntity)
                 .toList();
         return ResponseEntity.ok(members);
-    }
-
-    @PostMapping("/{roomId}/messages")
-    public ResponseEntity<MessageResponse> postMessage(
-            @PathVariable UUID roomId,
-            @Valid @RequestBody SendMessageRequest request,
-            Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
-        chatRoomService.validateMembership(roomId, userId);
-        User sender = userService.findById(userId);
-        ChatRoom room = chatRoomService.findById(roomId);
-        Message message = messageService.sendMessage(room, sender, request.getContent());
-        MessageResponse response = MessageResponse.fromEntity(message);
-        messagingTemplate.convertAndSend("/topic/rooms/" + roomId + "/messages", response);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    @GetMapping("/{roomId}/messages")
-    public ResponseEntity<List<MessageResponse>> getMessages(
-            @PathVariable UUID roomId,
-            @RequestParam(required = false) Instant before,
-            @RequestParam(defaultValue = "50") int limit,
-            Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
-        chatRoomService.validateMembership(roomId, userId);
-        int cappedLimit = Math.min(limit, 100);
-        List<MessageResponse> messages = messageService.getMessages(roomId, before, cappedLimit).stream()
-                .map(MessageResponse::fromEntity)
-                .toList();
-        return ResponseEntity.ok(messages);
     }
 
 }

@@ -23,3 +23,7 @@ databaseChangeLog:
       file: db/changelog/changes/011-relax-room-name-unique.sql
   - include:
       file: db/changelog/changes/012-create-read-receipts.sql
+  - include:
+      file: db/changelog/changes/013-create-attachments.sql
+  - include:
+      file: db/changelog/changes/014-add-message-reply-and-edit.sql
