@@ -52,10 +52,16 @@ public class PresenceService {
 
     public void disconnect(Long userId) {
         presenceMap.computeIfPresent(userId, (id, info) -> {
+            PresenceStatus oldStatus = info.status;
             info.activeConnections = Math.max(0, info.activeConnections - 1);
             info.afkConnections = Math.min(info.afkConnections, info.activeConnections);
             if (info.activeConnections == 0) {
                 scheduleOffline(userId);
+            } else if (info.afkConnections >= info.activeConnections && info.status != PresenceStatus.AFK) {
+                info.status = PresenceStatus.AFK;
+            }
+            if (info.status != oldStatus) {
+                broadcastPresence(userId);
             }
             return info;
         });

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ChatRoom, ChatMessage } from '../api/types.ts';
 import { roomsApi } from '../api/rooms.ts';
+import { presenceApi } from '../api/presence.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { useWebSocket } from '../hooks/useWebSocket.ts';
 import { usePresence } from '../hooks/usePresence.ts';
@@ -81,7 +82,12 @@ export function ChatLayout() {
     }
 
     subscribe(room.id);
-  }, [selectedRoom, subscribe, unsubscribe, markAsRead]);
+
+    // Fetch initial presence for room members
+    presenceApi.getRoomMemberPresence(room.id)
+      .then(presences => presences.forEach(handlePresenceEvent))
+      .catch(console.error);
+  }, [selectedRoom, subscribe, unsubscribe, markAsRead, handlePresenceEvent]);
 
   const handleLoadMore = useCallback(async (): Promise<boolean> => {
     if (!selectedRoom) return false;
