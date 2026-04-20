@@ -76,4 +76,13 @@ export const roomsApi = {
   deleteMessage: async (roomId: string, messageId: string): Promise<void> => {
     await client.delete(`/rooms/${roomId}/messages/${messageId}`);
   },
+
+  updateRoom: async (roomId: string, name?: string, description?: string): Promise<ChatRoom> => {
+    const { data } = await client.put<ChatRoom>(`/rooms/${roomId}`, { name, description });
+    return data;
+  },
+
+  deleteRoom: async (roomId: string): Promise<void> => {
+    await client.delete(`/rooms/${roomId}`);
+  },
 };

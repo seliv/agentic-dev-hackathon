@@ -3,9 +3,11 @@ package com.chatapp.controller;
 import com.chatapp.dto.ChatRoomMemberResponse;
 import com.chatapp.dto.ChatRoomResponse;
 import com.chatapp.dto.CreateRoomRequest;
+import com.chatapp.dto.UpdateRoomRequest;
 import com.chatapp.entity.ChatRoom;
 import com.chatapp.entity.User;
 import com.chatapp.service.ChatRoomService;
+import com.chatapp.service.ModerationService;
 import com.chatapp.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ public class ChatRoomController {
 
     private final ChatRoomService chatRoomService;
     private final UserService userService;
+    private final ModerationService moderationService;
 
     @PostMapping
     public ResponseEntity<ChatRoomResponse> createRoom(
@@ -97,6 +100,36 @@ public class ChatRoomController {
                 .map(ChatRoomMemberResponse::fromEntity)
                 .toList();
         return ResponseEntity.ok(members);
+    }
+
+    @PutMapping("/{roomId}")
+    public ResponseEntity<ChatRoomResponse> updateRoom(
+            @PathVariable UUID roomId,
+            @RequestBody UpdateRoomRequest request,
+            Authentication authentication) {
+        Long userId = (Long) authentication.getPrincipal();
+        ChatRoom room = chatRoomService.updateRoom(roomId, request.getName(), request.getDescription(), userId);
+        long memberCount = chatRoomService.getMemberCount(roomId);
+        return ResponseEntity.ok(ChatRoomResponse.fromEntity(room, memberCount));
+    }
+
+    @DeleteMapping("/{roomId}")
+    public ResponseEntity<Void> deleteRoom(
+            @PathVariable UUID roomId,
+            Authentication authentication) {
+        Long userId = (Long) authentication.getPrincipal();
+        chatRoomService.deleteRoom(roomId, userId);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{roomId}/members/{memberId}")
+    public ResponseEntity<Void> kickMember(
+            @PathVariable UUID roomId,
+            @PathVariable Long memberId,
+            Authentication authentication) {
+        Long userId = (Long) authentication.getPrincipal();
+        moderationService.kickMember(roomId, memberId, userId);
+        return ResponseEntity.ok().build();
     }
 
 }

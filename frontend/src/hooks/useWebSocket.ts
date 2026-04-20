@@ -9,19 +9,22 @@ interface UseWebSocketOptions {
   onMessage: (roomId: string, message: ChatMessage) => void;
   onPresence?: (event: PresenceEvent) => void;
   onEvent?: (roomId: string, event: MessageEvent) => void;
+  onNotification?: (notification: any) => void;
 }
 
-export function useWebSocket({ onMessage, onPresence, onEvent }: UseWebSocketOptions) {
+export function useWebSocket({ onMessage, onPresence, onEvent, onNotification }: UseWebSocketOptions) {
   const clientRef = useRef<Client | null>(null);
   const subscriptionsRef = useRef<Map<string, { unsubscribe: () => void }[]>>(new Map());
   const pendingSubscriptionsRef = useRef<Set<string>>(new Set());
   const onMessageRef = useRef(onMessage);
   const onPresenceRef = useRef(onPresence);
   const onEventRef = useRef(onEvent);
+  const onNotificationRef = useRef(onNotification);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   onMessageRef.current = onMessage;
   onPresenceRef.current = onPresence;
   onEventRef.current = onEvent;
+  onNotificationRef.current = onNotification;
 
   const doSubscribe = useCallback((client: Client, roomId: string) => {
     if (subscriptionsRef.current.has(roomId)) return;
@@ -52,6 +55,11 @@ export function useWebSocket({ onMessage, onPresence, onEvent }: UseWebSocketOpt
         stompClient.subscribe('/topic/presence', (msg: IMessage) => {
           const event: PresenceEvent = JSON.parse(msg.body);
           onPresenceRef.current?.(event);
+        });
+
+        stompClient.subscribe('/user/queue/notifications', (msg: IMessage) => {
+          const notification = JSON.parse(msg.body);
+          onNotificationRef.current?.(notification);
         });
 
         heartbeatRef.current = setInterval(() => {

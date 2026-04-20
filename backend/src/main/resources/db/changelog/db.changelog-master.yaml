@@ -27,3 +27,7 @@ databaseChangeLog:
       file: db/changelog/changes/013-create-attachments.sql
   - include:
       file: db/changelog/changes/014-add-message-reply-and-edit.sql
+  - include:
+      file: db/changelog/changes/015-create-room-bans.sql
+  - include:
+      file: db/changelog/changes/016-add-cascade-deletes.sql

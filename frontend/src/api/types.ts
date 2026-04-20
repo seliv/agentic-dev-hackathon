@@ -174,10 +174,56 @@ export interface ReplyPreview {
 }
 
 export interface MessageEvent {
-  type: 'MESSAGE_EDITED' | 'MESSAGE_DELETED';
-  data: ChatMessage | { messageId: string };
+  type: 'MESSAGE_EDITED' | 'MESSAGE_DELETED' | 'ROOM_DELETED' | 'MEMBER_ROLE_CHANGED' | 'MEMBER_REMOVED';
+  data: ChatMessage | { messageId: string } | { roomId: string } | { userId: number; username: string; newRole: string } | { userId: number };
 }
 
 export interface EditMessageRequest {
   content: string;
+}
+
+export interface RoomBan {
+  id: number;
+  roomId: string;
+  userId: number;
+  username: string;
+  displayName: string | null;
+  bannedById: number;
+  bannedByUsername: string;
+  reason: string | null;
+  createdAt: string;
+}
+
+export interface BanUserRequest {
+  userId: number;
+  reason?: string;
+}
+
+export interface UpdateRoomRequest {
+  name?: string;
+  description?: string;
+}
+
+export interface ChangeRoleRequest {
+  role: string;
+}
+
+export interface RoomBannedNotification {
+  type: 'ROOM_BANNED';
+  data: { roomId: string; roomName: string };
+}
+
+export interface RoomDeletedEvent {
+  type: 'ROOM_DELETED';
+  data: { roomId: string };
+}
+
+export interface MemberRoleChangedEvent {
+  type: 'MEMBER_ROLE_CHANGED';
+  data: { userId: number; username: string; newRole: string };
+}
+
+export interface MemberRemovedEvent {
+  type: 'MEMBER_REMOVED';
+  data: { userId: number };
 }

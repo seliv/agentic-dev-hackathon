@@ -9,13 +9,14 @@ interface MessageBubbleProps {
   message: ChatMessage;
   isOwn: boolean;
   isRoomOwner: boolean;
+  isRoomAdmin?: boolean;
   onReply?: (message: ChatMessage) => void;
   onEdit?: (message: ChatMessage) => void;
   onDelete?: (messageId: string) => void;
   onReplyClick?: (messageId: string) => void;
 }
 
-export const MessageBubble = ({ message, isOwn, isRoomOwner, onReply, onEdit, onDelete, onReplyClick }: MessageBubbleProps) => {
+export const MessageBubble = ({ message, isOwn, isRoomOwner, isRoomAdmin, onReply, onEdit, onDelete, onReplyClick }: MessageBubbleProps) => {
   const [hovered, setHovered] = useState(false);
   const [viewingImage, setViewingImage] = useState<AttachmentInfo | null>(null);
 
@@ -44,7 +45,7 @@ export const MessageBubble = ({ message, isOwn, isRoomOwner, onReply, onEdit, on
 
   const showActions = hovered && !message.deleted;
   const canEdit = isOwn && onEdit;
-  const canDelete = (isOwn || isRoomOwner) && onDelete;
+  const canDelete = (isOwn || isRoomOwner || isRoomAdmin) && onDelete;
 
   return (
     <div

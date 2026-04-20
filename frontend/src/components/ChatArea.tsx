@@ -9,6 +9,7 @@ interface ChatAreaProps {
   messages: ChatMessage[];
   currentUserId: number;
   roomOwnerId: number;
+  isRoomAdmin?: boolean;
   onLoadMore: () => Promise<boolean>;
   loading?: boolean;
   onReply: (message: ChatMessage) => void;
@@ -17,7 +18,7 @@ interface ChatAreaProps {
   onFileDrop: (files: File[]) => void;
 }
 
-export const ChatArea = ({ messages, currentUserId, roomOwnerId, onLoadMore, loading, onReply, onEdit, onDelete, onFileDrop }: ChatAreaProps) => {
+export const ChatArea = ({ messages, currentUserId, roomOwnerId, isRoomAdmin, onLoadMore, loading, onReply, onEdit, onDelete, onFileDrop }: ChatAreaProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
   const prevMessagesLengthRef = useRef(0);
@@ -139,6 +140,7 @@ export const ChatArea = ({ messages, currentUserId, roomOwnerId, onLoadMore, loa
             message={msg}
             isOwn={msg.senderId === currentUserId}
             isRoomOwner={roomOwnerId === currentUserId}
+            isRoomAdmin={isRoomAdmin}
             onReply={onReply}
             onEdit={onEdit}
             onDelete={onDelete}

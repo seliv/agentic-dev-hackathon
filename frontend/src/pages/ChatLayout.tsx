@@ -16,6 +16,7 @@ import { RoomHeader } from '../components/RoomHeader.tsx';
 import { ContactsPanel } from '../components/ContactsPanel.tsx';
 import { UserSearchModal } from '../components/UserSearchModal.tsx';
 import { InviteToRoomModal } from '../components/InviteToRoomModal.tsx';
+import { ManageRoomModal } from '../components/ManageRoomModal.tsx';
 
 export function ChatLayout() {
   const { user } = useAuth();
@@ -30,6 +31,8 @@ export function ChatLayout() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<string | undefined>(undefined);
 
   const { getPresence, handlePresenceEvent } = usePresence();
   const { getUnreadCount, incrementUnread, markAsRead } = useUnread();
@@ -51,6 +54,16 @@ export function ChatLayout() {
     }
   }, [incrementUnread]);
 
+  const handleNotification = useCallback((notification: { type: string; data: Record<string, string> }) => {
+    if (notification.type === 'ROOM_BANNED') {
+      const { roomId } = notification.data;
+      setRooms(prev => prev.filter(r => r.id !== roomId));
+      if (selectedRoomRef.current?.id === roomId) {
+        setSelectedRoom(null);
+      }
+    }
+  }, []);
+
   const handleEvent = useCallback((roomId: string, event: MessageEvent) => {
     if (event.type === 'MESSAGE_EDITED') {
       const updated = event.data as ChatMessage;
@@ -70,13 +83,32 @@ export function ChatLayout() {
         ));
         return next;
       });
+    } else if (event.type === 'ROOM_DELETED') {
+      setRooms(prev => prev.filter(r => r.id !== roomId));
+      if (selectedRoomRef.current?.id === roomId) {
+        setSelectedRoom(null);
+      }
+    } else if (event.type === 'MEMBER_ROLE_CHANGED') {
+      const { userId, newRole } = event.data as { userId: number; username: string; newRole: string };
+      if (userId === user!.id && selectedRoomRef.current?.id === roomId) {
+        setCurrentUserRole(newRole);
+      }
+    } else if (event.type === 'MEMBER_REMOVED') {
+      const { userId } = event.data as { userId: number };
+      if (userId === user!.id) {
+        setRooms(prev => prev.filter(r => r.id !== roomId));
+        if (selectedRoomRef.current?.id === roomId) {
+          setSelectedRoom(null);
+        }
+      }
     }
-  }, []);
+  }, [user]);
 
   const { subscribe, unsubscribe, sendMessage } = useWebSocket({
     onMessage: handleNewMessage,
     onPresence: handlePresenceEvent,
     onEvent: handleEvent,
+    onNotification: handleNotification,
   });
 
   useEffect(() => {
@@ -113,7 +145,16 @@ export function ChatLayout() {
     presenceApi.getRoomMemberPresence(room.id)
       .then(presences => presences.forEach(handlePresenceEvent))
       .catch(console.error);
-  }, [selectedRoom, subscribe, unsubscribe, markAsRead, handlePresenceEvent]);
+
+    // Fetch current user's role in this room
+    try {
+      const roomMembers = await roomsApi.getMembers(room.id);
+      const me = roomMembers.find(m => m.userId === user!.id);
+      setCurrentUserRole(me?.role);
+    } catch (err) {
+      console.error('Failed to load member role', err);
+    }
+  }, [selectedRoom, subscribe, unsubscribe, markAsRead, handlePresenceEvent, user]);
 
   const handleLoadMore = useCallback(async (): Promise<boolean> => {
     if (!selectedRoom) return false;
@@ -214,6 +255,22 @@ export function ChatLayout() {
     return getPresence(otherUserId);
   };
 
+  const handleRoomUpdated = useCallback((updatedRoom: ChatRoom) => {
+    setRooms(prev => prev.map(r => r.id === updatedRoom.id ? updatedRoom : r));
+    if (selectedRoom?.id === updatedRoom.id) {
+      setSelectedRoom(updatedRoom);
+    }
+  }, [selectedRoom]);
+
+  const handleRoomDeleted = useCallback(() => {
+    if (selectedRoom) {
+      unsubscribe(selectedRoom.id);
+      setRooms(prev => prev.filter(r => r.id !== selectedRoom.id));
+      setSelectedRoom(null);
+    }
+    setManageOpen(false);
+  }, [selectedRoom, unsubscribe]);
+
   const currentMessages = selectedRoom ? (messages.get(selectedRoom.id) || []) : [];
 
   return (
@@ -226,14 +283,17 @@ export function ChatLayout() {
               <RoomHeader
                 room={selectedRoom}
                 currentUserId={user!.id}
+                currentUserRole={currentUserRole}
                 onLeave={handleLeaveRoom}
                 onInvite={selectedRoom.type === 'PRIVATE' ? () => setInviteOpen(true) : undefined}
+                onManage={() => setManageOpen(true)}
                 dmPresence={getDmPresence()}
               />
               <ChatArea
                 messages={currentMessages}
                 currentUserId={user!.id}
                 roomOwnerId={selectedRoom.ownerId}
+                isRoomAdmin={currentUserRole === 'ADMIN' || currentUserRole === 'OWNER'}
                 onLoadMore={handleLoadMore}
                 loading={loadingMessages}
                 onReply={setReplyTo}
@@ -275,6 +335,16 @@ export function ChatLayout() {
       <UserSearchModal open={userSearchOpen} onClose={() => setUserSearchOpen(false)} onDMCreated={handleDMCreated} />
       {selectedRoom && (
         <InviteToRoomModal open={inviteOpen} roomId={selectedRoom.id} onClose={() => setInviteOpen(false)} />
+      )}
+      {selectedRoom && (
+        <ManageRoomModal
+          open={manageOpen}
+          room={selectedRoom}
+          currentUserId={user!.id}
+          onClose={() => setManageOpen(false)}
+          onRoomUpdated={handleRoomUpdated}
+          onRoomDeleted={handleRoomDeleted}
+        />
       )}
     </div>
   );

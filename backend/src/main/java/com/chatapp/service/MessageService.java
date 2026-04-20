@@ -2,6 +2,7 @@ package com.chatapp.service;
 
 import com.chatapp.entity.ChatRoom;
 import com.chatapp.entity.ChatRoomMember;
+import com.chatapp.entity.MemberRole;
 import com.chatapp.entity.Message;
 import com.chatapp.entity.RoomType;
 import com.chatapp.entity.User;
@@ -89,9 +90,12 @@ public class MessageService {
 
         boolean isSender = message.getSender().getId().equals(userId);
         boolean isOwner = message.getRoom().getOwner().getId().equals(userId);
+        boolean isAdmin = memberRepository.findByRoomIdAndUserId(roomId, userId)
+                .map(member -> member.getRole() == MemberRole.ADMIN)
+                .orElse(false);
 
-        if (!isSender && !isOwner) {
-            throw new IllegalStateException("Only the sender or room owner can delete a message");
+        if (!isSender && !isOwner && !isAdmin) {
+            throw new IllegalStateException("Only the sender, room owner, or admin can delete a message");
         }
 
         message.setDeletedAt(Instant.now());
