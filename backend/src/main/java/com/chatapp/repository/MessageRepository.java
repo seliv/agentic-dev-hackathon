@@ -14,4 +14,8 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
 
     List<Message> findByRoomIdOrderByCreatedAtDesc(UUID roomId, Pageable pageable);
 
+    long countByRoomId(UUID roomId);
+
+    long countByRoomIdAndCreatedAtAfter(UUID roomId, Instant after);
+
 }
