@@ -1,5 +1,5 @@
 import { Button, Typography } from 'antd';
-import { LogoutOutlined, UserAddOutlined } from '@ant-design/icons';
+import { LogoutOutlined, UserAddOutlined, SettingOutlined } from '@ant-design/icons';
 import type { ChatRoom, PresenceStatus } from '../api/types.ts';
 import { PresenceIndicator } from './PresenceIndicator.tsx';
 
@@ -8,15 +8,18 @@ const { Text, Title } = Typography;
 interface Props {
   room: ChatRoom;
   currentUserId: number;
+  currentUserRole?: string;
   onLeave: () => void;
   onInvite?: () => void;
+  onManage?: () => void;
   dmPresence?: PresenceStatus;
 }
 
-export const RoomHeader = ({ room, currentUserId, onLeave, onInvite, dmPresence }: Props) => {
+export const RoomHeader = ({ room, currentUserId, currentUserRole, onLeave, onInvite, onManage, dmPresence }: Props) => {
   const isOwner = room.ownerId === currentUserId;
   const isDirect = room.type === 'DIRECT';
   const isPrivate = room.type === 'PRIVATE';
+  const canManage = isOwner || currentUserRole === 'ADMIN';
 
   const displayName = isDirect
     ? 'Direct Message'
@@ -39,6 +42,9 @@ export const RoomHeader = ({ room, currentUserId, onLeave, onInvite, dmPresence 
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <Text type="secondary">{room.memberCount} members</Text>
+        {canManage && !isDirect && onManage && (
+          <Button size="small" icon={<SettingOutlined />} onClick={onManage}>Manage</Button>
+        )}
         {isPrivate && onInvite && (
           <Button size="small" icon={<UserAddOutlined />} onClick={onInvite}>Invite</Button>
         )}
