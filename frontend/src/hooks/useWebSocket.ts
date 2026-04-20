@@ -1,34 +1,42 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { Client } from '@stomp/stompjs';
 import type { IMessage } from '@stomp/stompjs';
-import type { ChatMessage, PresenceEvent } from '../api/types.ts';
+import type { ChatMessage, PresenceEvent, MessageEvent } from '../api/types.ts';
 
 const WS_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/api$/, '').replace(/^http/, 'ws') + '/ws';
 
 interface UseWebSocketOptions {
   onMessage: (roomId: string, message: ChatMessage) => void;
   onPresence?: (event: PresenceEvent) => void;
+  onEvent?: (roomId: string, event: MessageEvent) => void;
 }
 
-export function useWebSocket({ onMessage, onPresence }: UseWebSocketOptions) {
+export function useWebSocket({ onMessage, onPresence, onEvent }: UseWebSocketOptions) {
   const clientRef = useRef<Client | null>(null);
-  const subscriptionsRef = useRef<Map<string, { unsubscribe: () => void }>>(new Map());
+  const subscriptionsRef = useRef<Map<string, { unsubscribe: () => void }[]>>(new Map());
   const pendingSubscriptionsRef = useRef<Set<string>>(new Set());
   const onMessageRef = useRef(onMessage);
   const onPresenceRef = useRef(onPresence);
+  const onEventRef = useRef(onEvent);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   onMessageRef.current = onMessage;
   onPresenceRef.current = onPresence;
+  onEventRef.current = onEvent;
 
   const doSubscribe = useCallback((client: Client, roomId: string) => {
     if (subscriptionsRef.current.has(roomId)) return;
 
-    const subscription = client.subscribe(`/topic/rooms/${roomId}/messages`, (msg: IMessage) => {
+    const messageSub = client.subscribe(`/topic/rooms/${roomId}/messages`, (msg: IMessage) => {
       const message: ChatMessage = JSON.parse(msg.body);
       onMessageRef.current(roomId, message);
     });
 
-    subscriptionsRef.current.set(roomId, subscription);
+    const eventSub = client.subscribe(`/topic/rooms/${roomId}/events`, (msg: IMessage) => {
+      const event: MessageEvent = JSON.parse(msg.body);
+      onEventRef.current?.(roomId, event);
+    });
+
+    subscriptionsRef.current.set(roomId, [messageSub, eventSub]);
   }, []);
 
   useEffect(() => {
@@ -78,7 +86,7 @@ export function useWebSocket({ onMessage, onPresence }: UseWebSocketOptions) {
       if (heartbeatRef.current) {
         clearInterval(heartbeatRef.current);
       }
-      subscriptionsRef.current.forEach(sub => sub.unsubscribe());
+      subscriptionsRef.current.forEach(subs => subs.forEach(sub => sub.unsubscribe()));
       subscriptionsRef.current.clear();
       pendingSubscriptionsRef.current.clear();
       stompClient.deactivate();
@@ -95,19 +103,19 @@ export function useWebSocket({ onMessage, onPresence }: UseWebSocketOptions) {
   }, [doSubscribe]);
 
   const unsubscribe = useCallback((roomId: string) => {
-    const sub = subscriptionsRef.current.get(roomId);
-    if (sub) {
-      sub.unsubscribe();
+    const subs = subscriptionsRef.current.get(roomId);
+    if (subs) {
+      subs.forEach(sub => sub.unsubscribe());
       subscriptionsRef.current.delete(roomId);
     }
   }, []);
 
-  const sendMessage = useCallback((roomId: string, content: string) => {
+  const sendMessage = useCallback((roomId: string, content: string, replyToId?: string) => {
     const client = clientRef.current;
     if (!client?.connected) return;
     client.publish({
       destination: `/app/rooms/${roomId}/messages`,
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, replyToId }),
     });
   }, []);
 
