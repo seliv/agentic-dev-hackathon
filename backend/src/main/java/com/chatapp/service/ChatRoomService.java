@@ -16,10 +16,12 @@ import com.chatapp.repository.RoomBanRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -31,6 +33,7 @@ public class ChatRoomService {
     private final RoomBanRepository banRepository;
     private final AttachmentRepository attachmentRepository;
     private final FileStorageService fileStorageService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     public ChatRoom createRoom(CreateRoomRequest request, User owner) {
@@ -184,6 +187,12 @@ public class ChatRoomService {
         if (!room.getOwner().getId().equals(callerUserId)) {
             throw new IllegalStateException("Only the room owner can delete the room");
         }
+
+        // Broadcast ROOM_DELETED before cascade removes subscriptions
+        messagingTemplate.convertAndSend(
+                "/topic/rooms/" + roomId + "/events",
+                Map.of("type", "ROOM_DELETED", "data", Map.of("roomId", roomId))
+        );
 
         List<com.chatapp.entity.Attachment> attachments = attachmentRepository.findByMessageRoomId(roomId);
         for (com.chatapp.entity.Attachment attachment : attachments) {
