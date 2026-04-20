@@ -21,3 +21,5 @@ databaseChangeLog:
       file: db/changelog/changes/010-create-user-blocks.sql
   - include:
       file: db/changelog/changes/011-relax-room-name-unique.sql
+  - include:
+      file: db/changelog/changes/012-create-read-receipts.sql

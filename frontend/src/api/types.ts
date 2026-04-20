@@ -132,3 +132,20 @@ export interface NotificationPayload {
   type: 'FRIEND_REQUEST' | 'ROOM_INVITATION';
   data: Record<string, unknown>;
 }
+
+export type PresenceStatus = 'ONLINE' | 'AFK' | 'OFFLINE';
+
+export interface PresenceEvent {
+  userId: number;
+  username: string;
+  status: PresenceStatus;
+}
+
+export interface UnreadCount {
+  roomId: string;
+  count: number;
+}
+
+export interface MarkAsReadRequest {
+  lastReadMessageId: string;
+}

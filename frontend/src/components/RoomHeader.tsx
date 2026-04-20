@@ -1,6 +1,7 @@
 import { Button, Typography } from 'antd';
 import { LogoutOutlined, UserAddOutlined } from '@ant-design/icons';
-import type { ChatRoom } from '../api/types.ts';
+import type { ChatRoom, PresenceStatus } from '../api/types.ts';
+import { PresenceIndicator } from './PresenceIndicator.tsx';
 
 const { Text, Title } = Typography;
 
@@ -9,9 +10,10 @@ interface Props {
   currentUserId: number;
   onLeave: () => void;
   onInvite?: () => void;
+  dmPresence?: PresenceStatus;
 }
 
-export const RoomHeader = ({ room, currentUserId, onLeave, onInvite }: Props) => {
+export const RoomHeader = ({ room, currentUserId, onLeave, onInvite, dmPresence }: Props) => {
   const isOwner = room.ownerId === currentUserId;
   const isDirect = room.type === 'DIRECT';
   const isPrivate = room.type === 'PRIVATE';
@@ -29,7 +31,10 @@ export const RoomHeader = ({ room, currentUserId, onLeave, onInvite }: Props) =>
       borderBottom: '1px solid #f0f0f0',
     }}>
       <div>
-        <Title level={5} style={{ margin: 0 }}>{displayName}</Title>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Title level={5} style={{ margin: 0 }}>{displayName}</Title>
+          {dmPresence && <PresenceIndicator status={dmPresence} size={10} />}
+        </div>
         {room.description && <Text type="secondary">{room.description}</Text>}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
