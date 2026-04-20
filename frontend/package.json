@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emoji-mart/data": "^1.2.1",
+    "@emoji-mart/react": "^1.1.1",
     "@stomp/stompjs": "^7.3.0",
     "antd": "^5.27.4",
     "axios": "^1.12.2",

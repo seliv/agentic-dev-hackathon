@@ -68,7 +68,12 @@ export interface ChatMessage {
   senderId: number;
   senderUsername: string;
   senderDisplayName: string | null;
-  content: string;
+  content: string | null;
+  replyToId: string | null;
+  replyToPreview: ReplyPreview | null;
+  editedAt: string | null;
+  deleted: boolean;
+  attachments: AttachmentInfo[];
   createdAt: string;
   updatedAt: string;
 }
@@ -148,4 +153,31 @@ export interface UnreadCount {
 
 export interface MarkAsReadRequest {
   lastReadMessageId: string;
+}
+
+export interface AttachmentInfo {
+  id: string;
+  originalFileName: string;
+  contentType: string;
+  fileSize: number;
+  downloadUrl: string;
+  thumbnailUrl: string | null;
+}
+
+export interface ReplyPreview {
+  messageId: string;
+  senderId: number;
+  senderUsername: string;
+  senderDisplayName: string | null;
+  content: string | null;
+  deleted: boolean;
+}
+
+export interface MessageEvent {
+  type: 'MESSAGE_EDITED' | 'MESSAGE_DELETED';
+  data: ChatMessage | { messageId: string };
+}
+
+export interface EditMessageRequest {
+  content: string;
 }
