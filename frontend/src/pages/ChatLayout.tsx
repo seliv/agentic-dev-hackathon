@@ -36,7 +36,7 @@ export function ChatLayout() {
     });
   }, []);
 
-  const { subscribe, unsubscribe, sendMessage } = useWebSocket(handleNewMessage);
+  const { subscribe, unsubscribe, sendMessage } = useWebSocket({ onMessage: handleNewMessage });
 
   useEffect(() => {
     roomsApi.getMyRooms().then(setRooms).catch(console.error);
