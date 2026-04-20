@@ -62,7 +62,9 @@ export const roomsApi = {
     if (content) formData.append('content', content);
     if (replyToId) formData.append('replyToId', replyToId);
     files.forEach(file => formData.append('files', file));
-    const { data } = await client.post<ChatMessage>(`/rooms/${roomId}/messages`, formData);
+    const { data } = await client.post<ChatMessage>(`/rooms/${roomId}/messages`, formData, {
+      headers: { 'Content-Type': undefined },
+    });
     return data;
   },
 
