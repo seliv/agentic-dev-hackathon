@@ -10,4 +10,6 @@ public interface AttachmentRepository extends JpaRepository<Attachment, UUID> {
 
     List<Attachment> findByMessageId(UUID messageId);
 
+    List<Attachment> findByMessageRoomId(UUID roomId);
+
 }

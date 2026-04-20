@@ -9,8 +9,10 @@ import com.chatapp.entity.User;
 import com.chatapp.exception.NotRoomMemberException;
 import com.chatapp.exception.RoomNameAlreadyExistsException;
 import com.chatapp.exception.RoomNotFoundException;
+import com.chatapp.repository.AttachmentRepository;
 import com.chatapp.repository.ChatRoomMemberRepository;
 import com.chatapp.repository.ChatRoomRepository;
+import com.chatapp.repository.RoomBanRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,6 +28,9 @@ public class ChatRoomService {
 
     private final ChatRoomRepository roomRepository;
     private final ChatRoomMemberRepository memberRepository;
+    private final RoomBanRepository banRepository;
+    private final AttachmentRepository attachmentRepository;
+    private final FileStorageService fileStorageService;
 
     @Transactional
     public ChatRoom createRoom(CreateRoomRequest request, User owner) {
@@ -104,6 +109,10 @@ public class ChatRoomService {
     public ChatRoomMember joinRoom(UUID roomId, User user) {
         ChatRoom room = findById(roomId);
 
+        if (banRepository.existsByRoomIdAndUserId(roomId, user.getId())) {
+            throw new IllegalStateException("You are banned from this room");
+        }
+
         if (memberRepository.existsByRoomIdAndUserId(roomId, user.getId())) {
             return memberRepository.findByRoomIdAndUserId(roomId, user.getId()).get();
         }
@@ -141,6 +150,47 @@ public class ChatRoomService {
 
     public long getMemberCount(UUID roomId) {
         return memberRepository.countByRoomId(roomId);
+    }
+
+    @Transactional
+    public ChatRoom updateRoom(UUID roomId, String name, String description, Long callerUserId) {
+        ChatRoom room = findById(roomId);
+
+        ChatRoomMember caller = memberRepository.findByRoomIdAndUserId(roomId, callerUserId)
+                .orElseThrow(() -> new NotRoomMemberException("Not a member of this room"));
+
+        if (caller.getRole() == MemberRole.MEMBER) {
+            throw new IllegalStateException("Insufficient permissions");
+        }
+
+        if (name != null && !name.isBlank()) {
+            if (room.getType() == RoomType.PUBLIC && !name.equals(room.getName())
+                    && roomRepository.existsByNameAndType(name, RoomType.PUBLIC)) {
+                throw new RoomNameAlreadyExistsException("A public room with this name already exists");
+            }
+            room.setName(name);
+        }
+        if (description != null) {
+            room.setDescription(description);
+        }
+
+        return roomRepository.save(room);
+    }
+
+    @Transactional
+    public void deleteRoom(UUID roomId, Long callerUserId) {
+        ChatRoom room = findById(roomId);
+
+        if (!room.getOwner().getId().equals(callerUserId)) {
+            throw new IllegalStateException("Only the room owner can delete the room");
+        }
+
+        List<com.chatapp.entity.Attachment> attachments = attachmentRepository.findByMessageRoomId(roomId);
+        for (com.chatapp.entity.Attachment attachment : attachments) {
+            fileStorageService.delete(attachment.getStoragePath());
+        }
+
+        roomRepository.delete(room);
     }
 
 }
