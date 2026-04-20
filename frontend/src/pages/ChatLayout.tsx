@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ChatRoom, ChatMessage } from '../api/types.ts';
 import { roomsApi } from '../api/rooms.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { useWebSocket } from '../hooks/useWebSocket.ts';
+import { usePresence } from '../hooks/usePresence.ts';
+import { useUnread } from '../hooks/useUnread.ts';
 import { AppHeader } from '../components/AppHeader.tsx';
 import { RoomList } from '../components/RoomList.tsx';
 import { RoomBrowser } from '../components/RoomBrowser.tsx';
@@ -26,6 +28,12 @@ export function ChatLayout() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
 
+  const { getPresence, handlePresenceEvent } = usePresence();
+  const { getUnreadCount, incrementUnread, markAsRead } = useUnread();
+
+  const selectedRoomRef = useRef<ChatRoom | null>(null);
+  useEffect(() => { selectedRoomRef.current = selectedRoom; }, [selectedRoom]);
+
   const handleNewMessage = useCallback((roomId: string, msg: ChatMessage) => {
     setMessages(prev => {
       const next = new Map(prev);
@@ -34,9 +42,16 @@ export function ChatLayout() {
       next.set(roomId, [...existing, msg]);
       return next;
     });
-  }, []);
 
-  const { subscribe, unsubscribe, sendMessage } = useWebSocket({ onMessage: handleNewMessage });
+    if (!selectedRoomRef.current || selectedRoomRef.current.id !== roomId) {
+      incrementUnread(roomId);
+    }
+  }, [incrementUnread]);
+
+  const { subscribe, unsubscribe, sendMessage } = useWebSocket({
+    onMessage: handleNewMessage,
+    onPresence: handlePresenceEvent,
+  });
 
   useEffect(() => {
     roomsApi.getMyRooms().then(setRooms).catch(console.error);
@@ -51,6 +66,9 @@ export function ChatLayout() {
 
     try {
       const msgs = await roomsApi.getMessages(room.id);
+      if (msgs.length > 0) {
+        markAsRead(room.id, msgs[0].id);
+      }
       setMessages(prev => {
         const next = new Map(prev);
         next.set(room.id, msgs.reverse());
@@ -63,7 +81,7 @@ export function ChatLayout() {
     }
 
     subscribe(room.id);
-  }, [selectedRoom, subscribe, unsubscribe]);
+  }, [selectedRoom, subscribe, unsubscribe, markAsRead]);
 
   const handleLoadMore = useCallback(async (): Promise<boolean> => {
     if (!selectedRoom) return false;
@@ -119,6 +137,16 @@ export function ChatLayout() {
     handleSelectRoom(room);
   }, [handleSelectRoom]);
 
+  const getDmPresence = () => {
+    if (!selectedRoom || selectedRoom.type !== 'DIRECT') return undefined;
+    const dmMatch = selectedRoom.name.match(/^dm-(\d+)-(\d+)$/);
+    if (!dmMatch) return undefined;
+    const id1 = Number(dmMatch[1]);
+    const id2 = Number(dmMatch[2]);
+    const otherUserId = id1 === user!.id ? id2 : id1;
+    return getPresence(otherUserId);
+  };
+
   const currentMessages = selectedRoom ? (messages.get(selectedRoom.id) || []) : [];
 
   return (
@@ -134,6 +162,7 @@ export function ChatLayout() {
                 currentUserId={user!.id}
                 onLeave={handleLeaveRoom}
                 onInvite={selectedRoom.type === 'PRIVATE' ? () => setInviteOpen(true) : undefined}
+                dmPresence={getDmPresence()}
               />
               <ChatArea messages={currentMessages} currentUserId={user!.id} onLoadMore={handleLoadMore} loading={loadingMessages} />
               <MessageInput onSend={handleSendMessage} />
@@ -154,6 +183,8 @@ export function ChatLayout() {
             onCreate={() => setCreateOpen(true)}
             onContacts={() => setContactsOpen(true)}
             onUserSearch={() => setUserSearchOpen(true)}
+            getUnreadCount={getUnreadCount}
+            getPresence={getPresence}
           />
         </div>
       </div>
